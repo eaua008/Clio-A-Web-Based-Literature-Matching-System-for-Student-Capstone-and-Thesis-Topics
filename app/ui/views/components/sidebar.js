@@ -10,10 +10,10 @@ class Sidebar {
             <span class="brand__name" aria-hidden="true">lio</span>
           </a>
           <div class="sidebar__tools">
-            <button type="button" class="icon-btn" data-search-toggle aria-label="Search projects" aria-controls="project-search" aria-expanded="false" title="Search projects">
+            <button type="button" class="icon-btn" data-search-toggle aria-label="Search projects" aria-haspopup="dialog" aria-controls="search-modal" aria-expanded="false" title="Search projects (Ctrl+K)">
               <i data-lucide="search"></i>
             </button>
-            <button type="button" class="icon-btn" data-sidebar-toggle aria-label="Collapse sidebar" title="Collapse sidebar">
+            <button type="button" class="icon-btn" data-sidebar-toggle aria-label="Collapse sidebar" aria-controls="sidebar" aria-expanded="true" title="Collapse sidebar">
               <i data-lucide="panel-left"></i>
             </button>
           </div>

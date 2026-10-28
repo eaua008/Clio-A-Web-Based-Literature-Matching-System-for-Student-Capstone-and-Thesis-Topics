@@ -61,9 +61,20 @@
 .sidebar-collapsed .new-project-btn span,
 .sidebar-collapsed .sidebar__search,
 .sidebar-collapsed .sidebar__section,
-.sidebar-collapsed .project-list-wrap { display: none; }
+.sidebar-collapsed .project-link__title { display: none; }
+/* Rail keeps the project icons so projects stay selectable; titles show as tooltips. */
+.sidebar-collapsed .project-link { justify-content: center; padding-inline: 0; }
 .sidebar-collapsed .new-project-btn { justify-content: center; padding: 0; }
+/* Empty projects: icon only on the rail; the message stays for screen readers. Desktop only (mobile drawer is always full). */
+@media (min-width: 769px) {
+  .sidebar-collapsed .empty-state { padding: 8px 0; border-color: transparent; }
+  .sidebar-collapsed .empty-state p { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
 .sidebar-collapsed .brand img { width: 40px; height: 51px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar { transition: none; }
+}
 
 /* Workspace */
 .workspace { flex: 1; min-width: 0; display: flex; flex-direction: column; }
@@ -152,8 +163,18 @@
 .result__score { padding: 4px 10px; border-radius: 6px; background: #C77DFF; color: #5A0099; font-size: 13px; font-weight: 700; white-space: nowrap; }
 .result__head svg.lucide { width: 22px; height: 22px; stroke-width: 2.6; transition: transform .2s; }
 .result.is-open .result__head svg.lucide { transform: rotate(180deg); }
-.result__body { margin: 10px 0 6px; font-size: 13px; color: var(--text-2); }
+.result__body { margin: 10px 0 6px; font-size: 13px; color: var(--text-2); display: grid; gap: 6px; animation: fade-in .2s var(--ease); }
+.result__row { display: grid; grid-template-columns: 150px 1fr; gap: 10px; }
+.result__row dt { font-weight: 700; color: #D9CCE8; }
+.result__row dd { margin: 0; overflow-wrap: anywhere; }
+.main.is-results .results-wrap { animation: fade-up .32s var(--ease) .12s both; }
+.result__head { cursor: pointer; border-radius: 999px; }
+@media (prefers-reduced-motion: reduce) {
+  .main.is-results .results-wrap, .result__body, .panel-wrap { animation: none; }
+  .result__head svg.lucide { transition: none; }
+}
 @media (max-width: 900px) {
-  .main.is-results { grid-template-columns: 1fr; }
+  .main.is-results { grid-template-columns: minmax(0, 1fr); }
   .main.is-results #form-view, .main.is-results .results-wrap { grid-column: 1; justify-self: stretch; margin-left: 0; max-width: none; }
+  .result__row { grid-template-columns: 1fr; gap: 0; }
 }
