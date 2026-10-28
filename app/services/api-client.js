@@ -70,7 +70,22 @@ class ClioApi {
     if (!result.notConnected) return { isSample: false, studies: [], error: result.message };
     return {
       isSample: true,
-      studies: [2.1, 1.9, 1.6, 1.2, 0.6].map((score, i) => ({ title: `Related Study Title ${i + 1}`, score })),
+      studies: [
+        ["Soil-Moisture Irrigation Controller", 2.1],
+        ["Sensor-Based Greenhouse Water Management", 1.9],
+        ["Solar-Powered Pump for Small Farms", 1.6],
+        ["Wi-Fi Crop Monitoring Dashboard", 1.2],
+        ["Low-Cost Weather Station for Agriculture", 0.6],
+      ].map(([name, score], i) => ({
+        title: `Sample Study ${i + 1}: ${name}`,
+        score,
+        source: "Local School Theses",
+        kind: "Sample",
+        year: 2022,
+        authors: "Sample author",
+        abstract: "Sample placeholder text. A real abstract from the matched study will appear here once matching is connected.",
+        details: { studyType: "Not stated", citedBy: "—", access: "Not stated", setting: "Not stated" },
+      })),
     };
   }
 }
