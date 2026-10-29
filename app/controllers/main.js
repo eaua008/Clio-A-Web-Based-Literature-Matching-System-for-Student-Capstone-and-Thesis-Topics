@@ -14,6 +14,7 @@ const projectNav = new ProjectNav(projectResults);
 const enterButton = new EnterButton(projectResults, projectNav, api);
 enterButton.bind();
 projectNav.bind(enterButton);
-new AuthController(api).bind();
+const auth = new AuthController(api);
+auth.bind();
 
 if (window.lucide) window.lucide.createIcons();

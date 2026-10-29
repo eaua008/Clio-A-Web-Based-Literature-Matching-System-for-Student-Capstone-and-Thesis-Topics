@@ -33,6 +33,40 @@ class AuthController {
 
     document.getElementById("login-form").addEventListener("submit", (e) => this.onSubmit(e, "login"));
     document.getElementById("signup-form").addEventListener("submit", (e) => this.onSubmit(e, "signup"));
+    this.bindSession();
+  }
+
+  /* Top bar account menu: open / close, and log out. Only matters once a user is signed in. */
+  bindSession() {
+    const toggle = document.querySelector("[data-menu-toggle]");
+    const menu = document.getElementById("profile-menu");
+    if (!toggle || !menu) return;
+    const setMenu = (open) => { menu.hidden = !open; toggle.setAttribute("aria-expanded", String(open)); };
+    toggle.addEventListener("click", () => setMenu(menu.hidden));
+    document.addEventListener("click", (e) => { if (!menu.hidden && !e.target.closest("#user-nav")) setMenu(false); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !menu.hidden) { setMenu(false); toggle.focus(); } });
+    menu.querySelector("[data-logout]").addEventListener("click", async () => {
+      await this.api.logout();
+      /* Reload so nothing from this user (projects, results, tokens) stays in memory on a shared computer. */
+      window.location.reload();
+    });
+    /* When a real backend is connected the "nothing is sent or saved" notes no longer apply. */
+    if (this.api.auth && this.api.auth.connected) this.modal.querySelectorAll(".auth-note").forEach((n) => { n.hidden = true; });
+  }
+
+  /* Swaps the Login / Sign Up buttons for the account menu. Text is set with textContent, never as HTML. */
+  signedIn(user) {
+    const guest = document.getElementById("guest-nav");
+    const account = document.getElementById("user-nav");
+    const name = user.name || user.email.split("@")[0] || "Account";
+    document.querySelectorAll("[data-user-name]").forEach((el) => { el.textContent = name; });
+    document.querySelectorAll("[data-user-email]").forEach((el) => { el.textContent = user.email; });
+    document.querySelectorAll("[data-user-initial]").forEach((el) => { el.textContent = name.charAt(0).toUpperCase(); });
+    const badge = account.querySelector(".demo-badge");
+    if (badge) badge.hidden = true;
+    guest.hidden = true;
+    guest.style.display = "none"; /* .auth-nav__guest sets display:flex, which would beat [hidden] */
+    account.hidden = false;
   }
 
   dialog() {
@@ -169,7 +203,18 @@ class AuthController {
         });
         return this.status(status, result.message, "error");
       }
-      /* Session handling belongs here once the backend defines it (e.g. update the top bar and close). */
+      const user = result.data && result.data.user;
+      if (user) {
+        form.reset();
+        this.signedIn(user);
+        this.close();
+        if (this.onSignIn) this.onSignIn(user);
+        return;
+      }
+      if (result.data && result.data.needsConfirmation) {
+        form.reset();
+        return this.status(status, "Almost done! Check your email and open the confirmation link, then sign in.", "info");
+      }
       this.status(status, view === "login" ? "Signed in." : "Account created.", "info");
     } finally {
       this.busy = false;

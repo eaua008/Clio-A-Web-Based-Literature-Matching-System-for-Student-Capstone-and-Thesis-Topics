@@ -48,18 +48,118 @@ class ApiClient {
   }
 }
 
+/* Clio — Supabase Auth over its REST API (no SDK, no extra script).
+   Set supabaseUrl and supabaseAnonKey in core/config.js. The anon key is public by design; real
+   protection is row level security in the database. NEVER put the service_role key in the frontend.
+   The session lives in memory only (never localStorage / cookies), so a page reload signs the user out
+   and a script injected later can't read a stored token. Errors are reworded on purpose so the
+   messages never reveal whether an email address already has an account. */
+class SupabaseAuth {
+  constructor(config = window.CLIO_CONFIG || {}) {
+    const url = String(config.supabaseUrl || "").trim().replace(/\/+$/, "");
+    this.url = /^https:\/\/[^\s/]+$/i.test(url) ? url : null;
+    this.key = String(config.supabaseAnonKey || "").trim() || null;
+    this.timeoutMs = config.timeoutMs || 15000;
+    this.session = null;
+  }
+
+  get connected() {
+    return Boolean(this.url && this.key);
+  }
+
+  get signedIn() {
+    return Boolean(this.session);
+  }
+
+  async call(path, body, token, options = {}) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    try {
+      const headers = { "Content-Type": "application/json", Accept: "application/json", apikey: this.key, ...(options.headers || {}) };
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const method = options.method || "POST";
+      const response = await fetch(`${this.url}${path}`, {
+        method, headers, body: method === "GET" ? undefined : JSON.stringify(body || {}),
+        credentials: "omit", cache: "no-store", referrerPolicy: "no-referrer", signal: controller.signal,
+      });
+      const data = await response.json().catch(() => ({}));
+      return response.ok ? { ok: true, data } : { ok: false, status: response.status, data };
+    } catch (error) {
+      return { ok: false, network: true, aborted: error.name === "AbortError" };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /* Turns a failed response into { ok:false, message, errors } for the form. */
+  fail(result, view) {
+    if (result.network) return { ok: false, message: result.aborted ? "The server took too long to respond." : "Couldn't reach the server. Check your connection and try again." };
+    const code = String((result.data && (result.data.error_code || result.data.error)) || "");
+    if (result.status === 429 || /rate_limit/.test(code)) return { ok: false, message: "Too many attempts. Please wait a minute and try again." };
+    if (code === "email_not_confirmed") return { ok: false, message: "Confirm your email first. We sent you a link when you signed up." };
+    if (code === "weak_password") return { ok: false, message: "That password is too weak.", errors: { password: "Choose a stronger password: at least 8 characters, not only numbers." } };
+    if (code === "signup_disabled") return { ok: false, message: "New sign-ups are turned off right now." };
+    if (view === "login") return { ok: false, message: "Incorrect email or password." };
+    if (result.status >= 500) return { ok: false, message: "The server couldn't complete the request." };
+    return { ok: false, message: "We couldn't create an account with those details. If you already have one, sign in instead." };
+  }
+
+  /* Keeps the tokens in memory and returns only what the UI needs. */
+  adopt(data) {
+    this.session = {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+      expiresAt: Date.now() + (Number(data.expires_in) || 3600) * 1000,
+    };
+    const user = data.user || {};
+    const meta = user.user_metadata || {};
+    return { id: user.id, email: user.email || "", name: String(meta.full_name || "").trim() };
+  }
+
+  async login(email, password) {
+    const result = await this.call("/auth/v1/token?grant_type=password", { email, password });
+    if (!result.ok) return this.fail(result, "login");
+    return { ok: true, data: { user: this.adopt(result.data) } };
+  }
+
+  async signup(name, email, password) {
+    const result = await this.call("/auth/v1/signup", { email, password, data: { full_name: name } });
+    if (!result.ok) return this.fail(result, "signup");
+    if (result.data.access_token) return { ok: true, data: { user: this.adopt(result.data) } };
+    return { ok: true, data: { user: null, needsConfirmation: true } };
+  }
+
+  async logout() {
+    const token = this.session && this.session.accessToken;
+    this.session = null;
+    if (token) await this.call("/auth/v1/logout?scope=local", {}, token);
+    return { ok: true };
+  }
+}
+
 /* Clio — backend operations used by the controllers. */
 class ClioApi {
-  constructor(client = new ApiClient()) {
+  constructor(client = new ApiClient(), auth = new SupabaseAuth()) {
     this.client = client;
+    this.auth = auth;
   }
 
   login(email, password) {
+    if (this.auth.connected) return this.auth.login(email, password);
     return this.client.post("/auth/login/", { email, password });
   }
 
   signup(name, email, password) {
+    if (this.auth.connected) return this.auth.signup(name, email, password);
     return this.client.post("/auth/signup/", { name, email, password });
+  }
+
+  logout() {
+    return this.auth.connected ? this.auth.logout() : Promise.resolve({ ok: true });
+  }
+
+  get signedIn() {
+    return this.auth.connected && this.auth.signedIn;
   }
 
   /* Related studies for a project. Until matching is connected this returns clearly labelled
