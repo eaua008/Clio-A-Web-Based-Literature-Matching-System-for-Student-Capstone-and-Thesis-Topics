@@ -32,7 +32,7 @@ def parse_args():
     parser.add_argument("--abstract", default=SAMPLE["abstract"])
     parser.add_argument("--keywords", default=SAMPLE["keywords"],
                         help="comma-separated keywords")
-    parser.add_argument("--limit", type=int, default=5)
+    parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--offline", action="store_true",
                         help="use the seed file instead of Supabase")
     return parser.parse_args()

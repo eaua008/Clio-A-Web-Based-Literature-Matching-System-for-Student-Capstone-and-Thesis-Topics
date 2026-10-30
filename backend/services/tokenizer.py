@@ -49,13 +49,12 @@ def remove_stopwords(words: list) -> list:
 
 @lru_cache(maxsize=None)
 def stem_word(word: str) -> str:
-    """Shorten a word to its base form: 'sensors' -> 'sensor', 'irrigation' -> 'irrig'.
-    lru_cache remembers results, which is safe because the answer never changes."""
+    """'sensors' -> 'sensor'. Cached because the result never changes."""
     return _stemmer.stem(word)
 
 
 def with_stem(word: str) -> tuple:
-    """(stem, original word). The original is kept so shared words can be shown readably."""
+    """(stem, original word). The original is kept to show shared words readably."""
     return (stem_word(word), word)
 
 
@@ -64,9 +63,8 @@ tokenize = pipe(tokenize_pairs, partial(map, itemgetter(0)), list)
 
 
 
-def build_token_list(title: str, abstract: str, keywords, keyword_boost: int = 2) -> list:
-    """Title + abstract + keywords as one token list. Keywords are repeated `keyword_boost` times,
-    so a keyword the student chose counts for more than a word buried in the abstract."""
+def build_token_list(title: str, abstract: str, keywords, keyword_boost: int) -> list:
+    """Title, abstract and keywords as one token list. Keywords repeat keyword_boost times."""
     keyword_tokens = tokenize(" ".join(keywords or []))
     return tokenize(title) + tokenize(abstract) + keyword_tokens * max(1, keyword_boost)
 

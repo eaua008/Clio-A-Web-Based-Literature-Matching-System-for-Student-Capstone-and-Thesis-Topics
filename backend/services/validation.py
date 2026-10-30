@@ -1,7 +1,4 @@
-"""
-Each rule is its own small function that returns an error message, or None when the
-value is fine. validate_input() runs them all and collects the messages per field.
-"""
+"""Input rules. Each check returns an error message, or None if the value is fine."""
 
 MIN_WORDS = 50
 MAX_TITLE = 200
@@ -11,7 +8,7 @@ MAX_KEYWORD_LENGTH = 50
 
 
 class ValidationError(ValueError):
-    """Bad input. `errors` maps a field name to its message (the frontend shows each under its box)."""
+    """Bad input. `errors` maps a field name to its message."""
 
     def __init__(self, errors: dict):
         super().__init__("Please fix the highlighted fields.")

@@ -1,15 +1,14 @@
-"""
-Two styles here:
-  * FUNCTIONAL: to_percent, similarity_label and shape_match are pure. They only turn their
-    arguments into a result, so they are easy to test and the order of calls does not matter.
-  * IMPERATIVE: MatchService owns the study index and changes it over time (build, rebuild).
+"""Validates the input, scores it against the studies and shapes the results.
+
+to_percent, similarity_label and shape_match are pure functions.
+MatchService is stateful: it keeps the index cache.
 """
 import threading
 import time
 from functools import partial
 from typing import Optional
 
-from config import Settings, load_settings
+from config import Settings, get_settings
 from models.study_model import StudyModel
 from services.tfidf import Scored, StudyIndex
 from services.tokenizer import build_display_words, build_token_list
@@ -55,11 +54,11 @@ def shape_match(result: Scored, display: dict, settings: Settings) -> dict:
 
 
 class MatchService:
-    """Holds the study index in memory, rebuilds it every `cache_ttl` seconds and answers find_matches()."""
+    """Keeps the study index in memory and rebuilds it every cache_ttl seconds."""
 
     def __init__(self, study_model, settings: Optional[Settings] = None):
         self.model = study_model
-        self.settings = settings or load_settings()
+        self.settings = settings or get_settings()
         self._index = None
         self._built_at = 0.0
         self._lock = threading.Lock()         # two requests must not rebuild the index at the same time
@@ -90,9 +89,9 @@ class MatchService:
 _default_service: Optional[MatchService] = None
 
 def find_matches(title, abstract, keywords, limit: Optional[int] = None) -> list:
-    """The function Person B calls. Uses one shared MatchService connected to Supabase."""
+    """Entry point for the match route. Uses one shared MatchService."""
     global _default_service
     if _default_service is None:
-        settings = load_settings()
+        settings = get_settings()
         _default_service = MatchService(StudyModel(settings), settings)
     return _default_service.find_matches(title, abstract, keywords, limit)

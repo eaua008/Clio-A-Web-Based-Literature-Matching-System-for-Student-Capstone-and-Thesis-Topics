@@ -1,10 +1,7 @@
-"""
-This module is written with loops and running totals on purpose. Building the index
-means counting, adding up and filling tables one step at a time, and doing that with
-explicit loops is the clearest and fastest way to write it.
+"""TF-IDF index of the studies, written with loops and running totals.
 
-Same formula as match_studies() in database/03_functions.sql, so both give similar scores:
-  term weight = (1 + ln(count)) * idf          idf = ln((1 + N) / (1 + df)) + 1
+Same formula as match_studies() in database/03_functions.sql:
+  weight = (1 + ln(count)) * idf,  idf = ln((1 + N) / (1 + df)) + 1
 """
 import math
 from collections import Counter, defaultdict
@@ -15,12 +12,12 @@ from models.study_model import Study
 from services.tokenizer import build_token_list
 
 def term_frequency(count: int) -> float:
-    """A word used 10 times is not 10x as important as one used once, so dampen it with ln."""
+    """1 + ln(count), so repeating a word counts for less each time."""
     return 1.0 + math.log(count)
 
 
 def compute_idf(token_lists: list) -> dict:
-    """How rare each term is. Rare terms (few studies use them) get a higher weight."""
+    """Rarer terms get a higher idf."""
     doc_freq = Counter()
     for tokens in token_lists:
         doc_freq.update(set(tokens))
@@ -33,8 +30,7 @@ def compute_idf(token_lists: list) -> dict:
 
 
 def build_postings(token_lists: list, idf: dict):
-    """For each term, the studies that contain it and the term's weight in each.
-    Also returns each study's vector length (norm), needed for cosine similarity."""
+    """term -> [(study position, weight)], plus each study's vector length for the cosine."""
     postings = defaultdict(list)              # term -> [(study position, weight), ...]
     norms = []
     for position, tokens in enumerate(token_lists):
@@ -53,7 +49,7 @@ class Scored:
     shared: list
 
 class StudyIndex:
-    def __init__(self, studies: list, keyword_boost: int = 2):
+    def __init__(self, studies: list, keyword_boost: int):
         self.keyword_boost = keyword_boost
         self.studies = studies
 
@@ -66,14 +62,14 @@ class StudyIndex:
         self.postings, self.norms = build_postings(self.tokens, self.idf)
 
     def query_vector(self, tokens: list) -> dict:
-        """The student's input as {term: weight}, using the same formula as the studies."""
+        """The input as {term: weight}, weighted the same way as the studies."""
         vector = {}
         for term, count in Counter(tokens).items():
             vector[term] = term_frequency(count) * self.idf.get(term, self.unseen_idf)
         return vector
 
 
-    def compare(self, tokens: list, min_score: float = 0.0, limit: Optional[int] = None) -> list:
+    def compare(self, tokens: list, min_score: float, limit: Optional[int] = None) -> list:
         """Score every study that shares at least one word with the input, best first."""
         query = self.query_vector(tokens)
         query_norm = math.sqrt(sum(weight * weight for weight in query.values()))

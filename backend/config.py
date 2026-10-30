@@ -1,6 +1,7 @@
 """Clio backend settings, read from environment variables (or a .env file)."""
 import os
 from dataclasses import dataclass
+from functools import lru_cache
 
 try:
     from dotenv import load_dotenv
@@ -42,8 +43,15 @@ def load_settings() -> Settings:
         supabase_key=_env("SUPABASE_KEY").strip(),
         cache_ttl=int(_env("CLIO_CACHE_TTL", "600")),
         default_limit=int(_env("CLIO_DEFAULT_LIMIT", "5")),
+        max_limit=int(_env("CLIO_MAX_LIMIT", "20")),
         min_score=float(_env("CLIO_MIN_SCORE", "1.0")),
         high_score=float(_env("CLIO_HIGH_SCORE", "50")),
         medium_score=float(_env("CLIO_MEDIUM_SCORE", "20")),
         keyword_boost=int(_env("CLIO_KEYWORD_BOOST", "1")),
     )
+
+
+@lru_cache(maxsize=1)
+def get_settings() -> Settings:
+    """The one Settings object the whole backend shares."""
+    return load_settings()

@@ -1,12 +1,11 @@
-"""Flask app factory for the Clio backend.
-"""
+"""Flask app for the Clio backend."""
 
 import logging
 
 from flask import Flask, jsonify
 from werkzeug.exceptions import HTTPException
 
-from config import ConfigError, load_settings
+from config import ConfigError, get_settings
 from models.study_model import StudyDataError
 from services.validation import ValidationError
 
@@ -15,7 +14,7 @@ log = logging.getLogger(__name__)
 
 def create_app() -> Flask:
     app = Flask(__name__)
-    app.config["SETTINGS"] = load_settings()
+    app.config["SETTINGS"] = get_settings()
 
     @app.get("/health")
     def health():
