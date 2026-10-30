@@ -16,6 +16,14 @@ def create_app() -> Flask:
     app = Flask(__name__)
     app.config["SETTINGS"] = get_settings()
 
+    @app.get("/")
+    def index():
+        return jsonify({
+            "name": "Clio API",
+            "status": "running",
+            "message": "Welcome to the Clio backend."
+        })
+
     @app.get("/health")
     def health():
         return jsonify({"status": "ok"})
