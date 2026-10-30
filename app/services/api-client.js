@@ -167,7 +167,7 @@ class ClioApi {
   async relatedStudies(project) {
     const result = await this.client.post("/matches/", { title: project.title, abstract: project.abstract, keywords: project.keywords });
     if (result.ok) return { isSample: false, studies: result.data.studies || [] };
-    if (!result.notConnected) return { isSample: false, studies: [], error: result.message };
+    if (!result.notConnected) return { isSample: false, studies: [], error: result.message, errors: result.errors || {} };
     return {
       isSample: true,
       studies: [

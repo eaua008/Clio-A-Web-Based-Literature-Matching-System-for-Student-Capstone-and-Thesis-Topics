@@ -1,11 +1,10 @@
-/* Clio — Enter button: keyword tags, word count, validation, then shows the related studies results. */
+/* Clio — Enter button: keyword tags and word count, then sends the project to the backend (which does the validation) and shows the related studies. */
 class EnterButton {
   constructor(results, nav, api) {
     this.results = results;
     this.nav = nav;
     this.api = api;
     this.busy = false;
-    this.minWords = 50;
     this.abstract = document.getElementById("abstract");
     this.wordCount = document.getElementById("word-count");
     this.form = document.getElementById("project-form");
@@ -38,11 +37,12 @@ class EnterButton {
   async submit() {
     if (this.busy) return;
     const project = this.read();
-    if (!this.validate(project)) return;
     if (this.keywordInput.value.trim()) this.addTyped();
+    this.showErrors({});
     this.busy = true;
     try {
       const match = await this.api.relatedStudies(project);
+      if (Object.keys(match.errors || {}).length) return this.showErrors(match.errors);
       this.results.show(project, match);
       this.nav.add(project, match);
     } finally {
@@ -55,11 +55,7 @@ class EnterButton {
   }
 
   countWords() {
-    const count = this.words(this.abstract.value);
-    const el = this.wordCount;
-    el.textContent = `${count} / ${this.minWords} words`;
-    el.classList.toggle("is-low", count > 0 && count < this.minWords);
-    el.classList.toggle("is-ok", count >= this.minWords);
+    this.wordCount.textContent = `${this.words(this.abstract.value)} words`;
   }
 
   tags() {
@@ -120,17 +116,11 @@ class EnterButton {
     document.getElementById(name === "keywords" ? "keyword-input" : name).setAttribute("aria-invalid", String(Boolean(message)));
   }
 
-  validate(project) {
-    const words = this.words(project.abstract);
-    const errors = {
-      title: project.title ? "" : "Please enter a project / capstone title.",
-      abstract: !project.abstract ? "Please enter a detailed abstract / technical summary."
-        : words < this.minWords ? `Abstract must be at least ${this.minWords} words (currently ${words}).` : "",
-      keywords: project.keywords.length ? "" : "Please enter at least one key domain term or keyword.",
-    };
-    Object.entries(errors).forEach(([name, message]) => this.setError(name, message));
-    const first = Object.keys(errors).find((name) => errors[name]);
+  /* Shows the backend's message for each field ({ title, abstract, keywords }) and focuses the first one. */
+  showErrors(errors) {
+    const fields = ["title", "abstract", "keywords"];
+    fields.forEach((name) => this.setError(name, errors[name] || ""));
+    const first = fields.find((name) => errors[name]);
     if (first) document.getElementById(first === "keywords" ? "keyword-input" : first).focus();
-    return !first;
   }
 }
