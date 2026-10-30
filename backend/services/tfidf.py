@@ -8,9 +8,11 @@ Same formula as match_studies() in database/03_functions.sql, so both give simil
 """
 import math
 from collections import Counter, defaultdict
+from dataclasses import dataclass
+from typing import Optional
 
+from models.study_model import Study
 from services.tokenizer import build_token_list
-
 
 def term_frequency(count: int) -> float:
     """A word used 10 times is not 10x as important as one used once, so dampen it with ln."""
@@ -44,6 +46,11 @@ def build_postings(token_lists: list, idf: dict):
         norms.append(math.sqrt(squares))
     return postings, norms
 
+@dataclass
+class Scored:
+    study: Study
+    score: float
+    shared: list
 
 class StudyIndex:
     def __init__(self, studies: list, keyword_boost: int = 2):
@@ -64,3 +71,31 @@ class StudyIndex:
         for term, count in Counter(tokens).items():
             vector[term] = term_frequency(count) * self.idf.get(term, self.unseen_idf)
         return vector
+
+
+    def compare(self, tokens: list, min_score: float = 0.0, limit: Optional[int] = None) -> list:
+        """Score every study that shares at least one word with the input, best first."""
+        query = self.query_vector(tokens)
+        query_norm = math.sqrt(sum(weight * weight for weight in query.values()))
+        if query_norm == 0:
+            return []
+
+        dots = defaultdict(float)
+        parts = defaultdict(list)
+        for term, query_weight in query.items():
+            for position, study_weight in self.postings.get(term, ()):
+                contribution = query_weight * study_weight
+                dots[position] += contribution
+                parts[position].append((term, contribution))
+
+        results = []
+        for position, dot in dots.items():
+            if self.norms[position] == 0:
+                continue
+            score = 100.0 * dot / (self.norms[position] * query_norm)   
+            if score > 0 and score >= min_score:
+                shared = sorted(parts[position], key=lambda part: -part[1])
+                results.append(Scored(self.studies[position], score, shared))
+
+        results.sort(key=lambda r: (-round(r.score, 1), -(r.study.year or 0), r.study.id))
+        return results[:limit] if limit else results
