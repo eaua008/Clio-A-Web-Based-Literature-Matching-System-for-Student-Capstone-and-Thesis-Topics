@@ -28,7 +28,7 @@ class Settings:
 
     def require_supabase(self) -> None:
         if not self.supabase_url or not self.supabase_key:
-            raise ConfigError("Set SUPABASE_URL and SUPABASE_KEY (see .env.example).")
+            raise ConfigError("Set SUPABASE_URL and SUPABASE_KEY")
         if self.supabase_key.startswith("sb_secret_"):
             raise ConfigError("SUPABASE_KEY is a secret key. Use the public anon/publishable key instead.")
 

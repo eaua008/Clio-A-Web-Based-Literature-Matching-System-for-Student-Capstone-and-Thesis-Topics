@@ -6,8 +6,8 @@ from flask import Flask, jsonify
 from werkzeug.exceptions import HTTPException
 
 from app.config import ConfigError, get_settings
-from models.study_model import StudyDataError
-from services.validation import ValidationError
+from app.models.study_model import StudyDataError
+from app.services.validation import ValidationError
 
 log = logging.getLogger(__name__)
 
