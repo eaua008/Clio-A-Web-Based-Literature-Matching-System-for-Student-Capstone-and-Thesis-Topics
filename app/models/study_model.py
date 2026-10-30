@@ -4,7 +4,7 @@ from typing import Optional
 
 import requests
 
-from config import Settings
+from app.config import Settings
 
 COLUMNS = ("id,title,abstract,keywords,authors,year,source_type,source_name,url,"
            "study_type,cited_by,access,setting,is_sample")

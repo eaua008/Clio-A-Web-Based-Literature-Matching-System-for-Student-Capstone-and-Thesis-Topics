@@ -8,11 +8,11 @@ import time
 from functools import partial
 from typing import Optional
 
-from config import Settings, get_settings
-from models.study_model import StudyModel
-from services.tfidf import Scored, StudyIndex
-from services.tokenizer import build_display_words, build_token_list
-from services.validation import validate_input
+from app.config import Settings, get_settings
+from app.models.study_model import StudyModel
+from app.services.tfidf import Scored, StudyIndex
+from app.services.tokenizer import build_display_words, build_token_list
+from app.services.validation import validate_input
 
 MAX_SHARED_WORDS = 8
 

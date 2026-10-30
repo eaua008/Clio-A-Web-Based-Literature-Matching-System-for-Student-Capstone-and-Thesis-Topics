@@ -12,7 +12,7 @@ from operator import itemgetter
 
 from nltk.stem import PorterStemmer
 
-from services.functional import pipe
+from app.services.functional import pipe
 
 MIN_LENGTH = 3
 

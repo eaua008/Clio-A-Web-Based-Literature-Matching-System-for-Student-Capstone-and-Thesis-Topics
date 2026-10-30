@@ -11,7 +11,7 @@ from pathlib import Path
 # Make the backend folder importable when this file is run directly.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from services.validation import ValidationError  # noqa: E402
+from app.services.validation import ValidationError  # noqa: E402
 
 SAMPLE = {
     "title": "Smart irrigation controller for small vegetable farms",
@@ -40,12 +40,12 @@ def parse_args():
 
 def run(args):
     if args.offline:
-        from services.matcher import MatchService
+        from app.services.matcher import MatchService
         from tests.seed_loader import FakeStudyModel
         return MatchService(FakeStudyModel()).find_matches(
             args.title, args.abstract, args.keywords, limit=args.limit
         )
-    from services.matcher import find_matches
+    from app.services.matcher import find_matches
     return find_matches(args.title, args.abstract, args.keywords, limit=args.limit)
 
 
