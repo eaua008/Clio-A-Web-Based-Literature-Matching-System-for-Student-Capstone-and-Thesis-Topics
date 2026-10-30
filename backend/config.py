@@ -23,7 +23,7 @@ class Settings:
     min_score: float = 1.0        
     high_score: float = 50.0     
     medium_score: float = 20.0    
-    keyword_boost: int = 2        
+    keyword_boost: int = 1        
 
     def require_supabase(self) -> None:
         if not self.supabase_url or not self.supabase_key:
@@ -45,5 +45,5 @@ def load_settings() -> Settings:
         min_score=float(_env("CLIO_MIN_SCORE", "1.0")),
         high_score=float(_env("CLIO_HIGH_SCORE", "50")),
         medium_score=float(_env("CLIO_MEDIUM_SCORE", "20")),
-        keyword_boost=int(_env("CLIO_KEYWORD_BOOST", "2")),
+        keyword_boost=int(_env("CLIO_KEYWORD_BOOST", "1")),
     )
