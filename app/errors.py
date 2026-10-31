@@ -53,3 +53,31 @@ class RuleViolation(AppError):
         if self.errors:
             body["errors"] = self.errors
         return body
+
+class FormError(AppError):
+    """Bad sign-in or sign-up details. `errors` maps a form field to its message."""
+    status = 400
+    message = "Please fix the highlighted fields."
+
+    def __init__(self, message: Optional[str] = None, errors: Optional[dict] = None, status: Optional[int] = None):
+        super().__init__(message)
+        self.errors = errors or {}
+        if status:
+            self.status = status
+
+    def to_json(self) -> dict:
+        body = super().to_json()
+        if self.errors:
+            body["errors"] = self.errors
+        return body
+
+
+class ForbiddenError(AppError):
+    status = 403
+    message = "This request was blocked."
+
+
+class AuthServiceError(AppError):
+    """Supabase Auth could not be reached."""
+    status = 503
+    message = "Couldn't reach the sign-in service. Please try again shortly."

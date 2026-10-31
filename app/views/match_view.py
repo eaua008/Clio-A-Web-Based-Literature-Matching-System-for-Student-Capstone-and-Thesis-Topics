@@ -90,3 +90,12 @@ class ProjectView(JsonView):
             },
             "studies": self.match_view.render_all(project.matches if matches is None else matches),
         }
+
+
+
+
+class UserView(JsonView):
+    """The signed-in user, as the account menu needs it. Never includes the token."""
+
+    def render(self, user) -> dict:
+        return {"id": user.id, "email": user.email, "name": user.name}

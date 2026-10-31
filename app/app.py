@@ -6,6 +6,7 @@ from flask import Flask, jsonify
 from werkzeug.exceptions import HTTPException
 
 from app.config import ConfigError, get_settings
+from app.controllers.auth_controller import AuthController
 from app.controllers.frontend_controller import FrontendController
 from app.controllers.match_controller import MatchController
 from app.controllers.project_controller import ProjectController
@@ -37,6 +38,7 @@ def create_app(auth: AuthService = None, repository_class=SupabaseProjectReposit
 
     auth = auth or AuthService()
     controllers = (
+        AuthController(auth),
         MatchController(auth),
         ProjectController(auth, repository_class),
         FrontendController(),

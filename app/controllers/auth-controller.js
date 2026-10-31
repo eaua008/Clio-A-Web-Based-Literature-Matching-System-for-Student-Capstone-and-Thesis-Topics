@@ -1,5 +1,6 @@
 /* Clio — Sign in / sign up modal behaviour: open, switch, close, validate, focus trap.
-   No authentication backend exists yet; connect it in submit() when endpoints are available. */
+   Sign-in goes through the Flask backend (ClioApi), which keeps the session in cookies,
+   so on page load restore() signs the user back in. */
 class AuthController {
   constructor(api) {
     this.api = api;
@@ -24,6 +25,7 @@ class AuthController {
       const unavailable = e.target.closest("[data-unavailable]");
       if (unavailable) return this.status(unavailable.closest(".auth-main").querySelector(".auth-status"), unavailable.dataset.unavailable);
     });
+    
 
     document.addEventListener("keydown", (e) => {
       if (this.modal.hidden) return;
@@ -34,6 +36,14 @@ class AuthController {
     document.getElementById("login-form").addEventListener("submit", (e) => this.onSubmit(e, "login"));
     document.getElementById("signup-form").addEventListener("submit", (e) => this.onSubmit(e, "signup"));
     this.bindSession();
+    this.restore();
+  }
+
+  /* After a page refresh: if the session cookies are still valid, show the user as signed in. */
+  async restore() {
+    if (!this.api.connected) return;
+    const user = await this.api.restore();
+    if (user) this.signedIn(user);
   }
 
   /* Top bar account menu: open / close, and log out. Only matters once a user is signed in. */
@@ -51,7 +61,7 @@ class AuthController {
       window.location.reload();
     });
     /* When a real backend is connected the "nothing is sent or saved" notes no longer apply. */
-    if (this.api.auth && this.api.auth.connected) this.modal.querySelectorAll(".auth-note").forEach((n) => { n.hidden = true; });
+    if (this.api.connected) this.modal.querySelectorAll(".auth-note").forEach((n) => { n.hidden = true; });
   }
 
   /* Swaps the Login / Sign Up buttons for the account menu. Text is set with textContent, never as HTML. */
