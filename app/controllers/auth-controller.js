@@ -71,8 +71,6 @@ class AuthController {
     document.dispatchEvent(new CustomEvent("clio:signed-in"));
   }
 
-  }
-
   dialog() {
     return this.modal.querySelector(".auth-dialog:not([hidden])");
   }
