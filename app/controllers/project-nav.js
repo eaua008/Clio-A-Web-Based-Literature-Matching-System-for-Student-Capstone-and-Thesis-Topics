@@ -53,15 +53,46 @@ class ProjectNav {
       if (!this.search.hidden) this.onSearchKey(e);
     });
     document.addEventListener("clio:signed-in", () => this.loadSaved());
+    document.addEventListener("clio:signed-out", () => this.finishRestore(null));
     this.render();
   }
 
-  /* Puts the user's saved projects in the list. Their matches load when one is opened. */
+  /* Puts the user's saved projects in the list, then reopens the project that was open before a refresh. */
   async loadSaved() {
-    const saved = await this.api.listProjects();
-    const unsaved = this.projects.filter((p) => !p.saved);
-    this.projects = [...unsaved, ...saved.map((p) => ({ id: p.id, title: p.title, saved: true, match: null }))];
-    this.render();
+    const root = document.documentElement;
+    root.classList.add("projects-pending");
+    try {
+      const saved = await this.api.listProjects();
+      const unsaved = this.projects.filter((p) => !p.saved);
+      this.projects = [...unsaved, ...saved.map((p) => ({ id: p.id, title: p.title, saved: true, match: null }))];
+      this.render();
+    } finally {
+      root.classList.remove("projects-pending");
+    }
+    await this.finishRestore(this.linkedProjectId());
+  }
+
+  /* The project id in the address (#/projects/<id>), if any. */
+  linkedProjectId() {
+    const found = location.hash.match(/^#\/projects\/([^/]+)$/);
+    return found ? decodeURIComponent(found[1]) : null;
+  }
+
+  /* Reopens the linked project if it is one of the user's; otherwise clears the address. */
+  async finishRestore(id) {
+    try {
+      if (id && this.projects.some((p) => p.id === id)) await this.open(id);
+      else if (location.hash.startsWith("#/projects/")) this.remember(null);
+    } finally {
+      document.documentElement.classList.remove("project-pending");
+    }
+  }
+
+  /* Puts the open saved project in the address bar, so a refresh can reopen it. Guest projects aren't saved, so they get no address. */
+  remember(id) {
+    const project = id && this.projects.find((p) => p.id === id);
+    const address = project && project.saved ? `#/projects/${encodeURIComponent(id)}` : location.pathname + location.search;
+    history.replaceState(null, "", address);
   }
 
   async open(id) {
@@ -82,6 +113,7 @@ class ProjectNav {
     if (match.projectId) {
       this.projects.unshift({ ...project, match, id: match.projectId, saved: true });
       this.activeId = match.projectId;
+      this.remember(match.projectId);
       return this.render();
     }
     const active = this.projects.find((p) => p.id === this.activeId && !p.saved);
@@ -94,6 +126,7 @@ class ProjectNav {
   /* Moves the highlight only; the list itself is unchanged. */
   select(id) {
     this.activeId = id;
+    this.remember(id);
     this.list.querySelectorAll(".project-link").forEach((link) => {
       const isActive = link.dataset.projectId === id;
       link.classList.toggle("is-active", isActive);

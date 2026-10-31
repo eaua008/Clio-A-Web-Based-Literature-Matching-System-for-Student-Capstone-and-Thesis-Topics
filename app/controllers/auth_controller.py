@@ -83,6 +83,7 @@ class AuthController(BaseController):
     def logout(self):
         access, _ = self.auth.cookies.read()
         if access:
+            self.auth.forget(access)
             self.auth.client.sign_out(access)
         response = jsonify({"ok": True})
         self.auth.cookies.clear(response)

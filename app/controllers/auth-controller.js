@@ -41,9 +41,14 @@ class AuthController {
 
   /* After a page refresh: if the session cookies are still valid, show the user as signed in. */
   async restore() {
-    if (!this.api.connected) return;
-    const user = await this.api.restore();
-    if (user) this.signedIn(user);
+    let user = null;
+    try {
+      if (this.api.connected) user = await this.api.restore();
+      if (user) this.signedIn(user);
+    } finally {
+      document.documentElement.classList.remove("auth-pending");
+      if (!user) document.dispatchEvent(new CustomEvent("clio:signed-out"));
+    }
   }
 
   /* Top bar account menu: open / close, and log out. Only matters once a user is signed in. */

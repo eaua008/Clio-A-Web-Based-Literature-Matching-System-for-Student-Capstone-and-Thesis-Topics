@@ -199,3 +199,11 @@ svg.lucide { width: 18px; height: 18px; flex-shrink: 0; stroke-width: 2; }
 .panel .keyword-box { padding: 0; }
 .panel .field .keyword-entry input { padding: 5px 8px; }
 .panel .field__meta { font-size: 10px; }
+
+
+/* Page load: until the page knows who is signed in, hide what would flash and then change
+   (removed by AuthController.restore, ProjectNav.loadSaved and ProjectNav.finishRestore). */
+.auth-pending .auth-nav,
+.auth-pending #project-list, .auth-pending #project-empty,
+.projects-pending #project-list, .projects-pending #project-empty,
+.project-pending #main-content { visibility: hidden; }
