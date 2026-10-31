@@ -1,6 +1,8 @@
 /* Clio — Related studies results view. Shows sample placeholders until TF-IDF matching is connected (see ClioApi). */
 class ProjectResults {
-  constructor() {
+  constructor(api = null) {
+    this.api = api;
+    this.current = null;
     this.sampleNote = "Sample data — similarity matching is not implemented yet; scores are placeholders, not real TF-IDF results.";
     this.reduceMotion = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : { matches: false };
   }
@@ -30,6 +32,7 @@ class ProjectResults {
       if (rel) {
         const pressed = rel.getAttribute("aria-pressed") !== "true";
         rel.parentElement.querySelectorAll(".result__rel").forEach((b) => b.setAttribute("aria-pressed", String(b === rel && pressed)));
+        this.saveLabel(rel.closest(".result"), { relation: pressed ? rel.dataset.relation : null });
         return;
       }
       const copy = e.target.closest("[data-copy-citation]");
@@ -48,13 +51,35 @@ class ProjectResults {
       head.setAttribute("aria-expanded", String(open));
       item.querySelector(".result__body").hidden = !open;
     });
+    /* "change" fires when the student leaves the note box after editing it. */
+    this.list.addEventListener("change", (e) => {
+      const note = e.target.closest(".result__diff");
+      if (note) this.saveLabel(note.closest(".result"), { difference: note.value });
+    });
   }
 
-    /* Header wording; a backend can send its own study.similarity. */
+  /* Sends the label or note to the backend. The backend's Logic rules decide what is valid. */
+  async saveLabel(item, changes) {
+    const status = item.querySelector("[data-label-status]");
+    const study = this.current && this.current.match.studies[Number(item.dataset.index)];
+    const projectId = this.current && this.current.match.projectId;
+    if (!this.api || !projectId || !study || !study.studyId) {
+      status.textContent = "Sign in to save your labels and notes.";
+      return;
+    }
+    status.textContent = "Saving…";
+    const result = await this.api.saveLabel(projectId, study.studyId, changes);
+    if (!result.ok) {
+      status.textContent = Object.values(result.errors || {})[0] || result.message;
+      return;
+    }
+    Object.assign(study, changes);
+    status.textContent = result.warnings.length ? result.warnings.join(" ") : "Saved.";
+  }
+
+  /* Header wording comes from the backend (its thresholds live in config.py). */
   similarity(study) {
-    if (study.similarity) return this.escape(study.similarity);
-    const score = Number(study.score);
-    return score >= 50 ? "High similarity" : score >= 20 ? "Medium similarity" : "Low similarity";
+    return this.escape(study.similarity || "");
   }
 
   /* Wraps the shared terms found in the abstract in <mark>; the text is escaped piece by piece. */
@@ -68,10 +93,9 @@ class ProjectResults {
   body(study, project, isSample, i) {
     const val = (v) => (v === undefined || v === null || v === "" ? "—" : this.escape(Array.isArray(v) ? v.join(", ") : v));
     const abstract = String(study.abstract || study.summary || "");
-    const words = [...new Set(project.keywords.join(" ").toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2))];
-    const given = Array.isArray(study.sharedTerms) ? study.sharedTerms : (study.sharedTerms ? String(study.sharedTerms).split(/\s*,\s*/) : null);
-    const shared = given || words.filter((w) => new RegExp(`\\b${w}\\b`, "i").test(abstract));
-    const missing = words.filter((w) => !shared.some((t) => t.toLowerCase() === w));
+    /* Both lists are computed by the backend (stemmed); the page only draws them. */
+    const shared = Array.isArray(study.sharedTerms) ? study.sharedTerms : [];
+    const missing = Array.isArray(study.missingTerms) ? study.missingTerms : [];
     const details = study.details || {};
     const chips = (list, cls) => list.map((t) => `<span class="${cls}">${this.escape(t)}</span>`).join("");
     const citation = !isSample && study.title ? [study.authors, study.year ? `(${study.year})` : "", `${study.title}.`, study.source ? `${study.source}.` : ""].filter(Boolean).join(" ") : "";
@@ -109,12 +133,13 @@ class ProjectResults {
       <div>
         <p class="result__label" id="result-rel-${i}">How does this relate to your project?</p>
         <div class="result__rels" role="group" aria-labelledby="result-rel-${i}">
-          ${["Duplicate", "Similar", "Related background", "Not relevant"].map((r) => `<button type="button" class="result__rel" aria-pressed="false">${r}</button>`).join("")}
+          ${["Duplicate", "Similar", "Related background", "Not relevant"].map((r) => `<button type="button" class="result__rel" data-relation="${r}" aria-pressed="${study.relation === r}">${r}</button>`).join("")}
         </div>
       </div>
       <div>
         <label class="result__diff-label" for="result-diff-${i}">How My Work Differs (Student Defense Argument):</label>
         <textarea class="result__diff" id="result-diff-${i}" rows="3" placeholder="e.g. While this paper uses high-pressure pneumatic solenoids, our project develops a low-power micro-stepper flipper gate that runs on an 18W solar battery for...">${study.difference && !isSample ? this.escape(study.difference) : ""}</textarea>
+        <p class="result__hint" data-label-status aria-live="polite"></p>
       </div>
       <div class="result__actions">
         ${url ? `<a class="result__btn result__btn--primary" href="${this.escape(url)}" target="_blank" rel="noopener noreferrer"><span>Open source</span><i data-lucide="external-link"></i></a>` : `<button type="button" class="result__btn result__btn--primary"${soon}><span>Open source</span><i data-lucide="external-link"></i></button>`}
@@ -128,9 +153,10 @@ class ProjectResults {
 
   /* match: { isSample, studies, error? } from ClioApi.relatedStudies(). */
   show(project, match) {
+    this.current = { project, match };
     this.note.textContent = match.error || (match.isSample ? this.sampleNote : "");
     this.list.innerHTML = match.studies.map((s, i) => `
-      <li class="result">
+      <li class="result" data-index="${i}">
         <button type="button" class="result__head" aria-expanded="false" aria-controls="result-body-${i}">
           <span class="result__title">#${i + 1} ${this.escape(s.title)}</span>
           <span class="result__sim">${this.similarity(s)}</span>

@@ -1,9 +1,10 @@
 /* Clio — Sidebar project navigation: project list, search dialog and collapse rail.
-   Projects live in memory for this page visit only: no persistence layer exists yet,
-   so nothing here is saved and a reload clears the list. */
+   Signed-in users' projects are saved by the backend and loaded after sign-in.
+   Guests' projects live in memory for this page visit only. */
 class ProjectNav {
-  constructor(results) {
+  constructor(results, api) {
     this.results = results;
+    this.api = api;
     this.form = null;
     this.projects = [];
     this.activeId = null;
@@ -51,19 +52,39 @@ class ProjectNav {
       }
       if (!this.search.hidden) this.onSearchKey(e);
     });
+    document.addEventListener("clio:signed-in", () => this.loadSaved());
     this.render();
   }
 
-  open(id) {
+  /* Puts the user's saved projects in the list. Their matches load when one is opened. */
+  async loadSaved() {
+    const saved = await this.api.listProjects();
+    const unsaved = this.projects.filter((p) => !p.saved);
+    this.projects = [...unsaved, ...saved.map((p) => ({ id: p.id, title: p.title, saved: true, match: null }))];
+    this.render();
+  }
+
+  async open(id) {
     const project = this.projects.find((p) => p.id === id);
+    if (project.saved && !project.match) {
+      const loaded = await this.api.loadProject(id);
+      if (loaded.error) return this.results.show(project, { isSample: false, studies: [], error: loaded.error });
+      Object.assign(project, loaded.project, { match: loaded.match });
+    }
     this.form.fill(project);
     this.results.show(project, project.match);
     this.select(project.id);
   }
 
-  /* match: the related-studies result shown for this project, reused when it is selected again. */
+  /* match: the related-studies result shown for this project, reused when it is selected again.
+     A saved project (match.projectId) is always a new entry, because the backend saved a new row. */
   add(project, match) {
-    const active = this.projects.find((p) => p.id === this.activeId);
+    if (match.projectId) {
+      this.projects.unshift({ ...project, match, id: match.projectId, saved: true });
+      this.activeId = match.projectId;
+      return this.render();
+    }
+    const active = this.projects.find((p) => p.id === this.activeId && !p.saved);
     if (active) Object.assign(active, project, { match });
     else this.projects.unshift({ ...project, match, id: `p${Date.now()}` });
     this.activeId = active ? active.id : this.projects[0].id;
@@ -93,7 +114,9 @@ class ProjectNav {
     });
     this.count.textContent = this.projects.length || "";
     this.empty.hidden = this.projects.length > 0;
-    this.empty.querySelector("p").textContent = "No projects yet. Projects you enter appear here for this visit only; they aren't saved.";
+    this.empty.querySelector("p").textContent = this.api.signedIn
+      ? "No projects yet. Projects you enter are saved to your account."
+      : "No projects yet. Projects you enter appear here for this visit only. Sign in to save them.";
     Icons.refresh();
   }
 

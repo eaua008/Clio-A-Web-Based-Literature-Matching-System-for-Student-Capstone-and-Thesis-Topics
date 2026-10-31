@@ -7,5 +7,6 @@
 window.CLIO_CONFIG = {
   supabaseUrl: "https://yqrehzvnifvijbheqowh.supabase.co",
   supabaseAnonKey: "sb_publishable_eG_HVVcT9k4eyDozN3h3Fw_yy6KYuzt",
+  apiBase: "/api", /* the Flask backend; the page must be opened through Flask (http://127.0.0.1:5000/app/) */
   debug: false, /* true: logs the HTTP status + PostgREST error code of failed saves (no tokens, no project text) */
 };

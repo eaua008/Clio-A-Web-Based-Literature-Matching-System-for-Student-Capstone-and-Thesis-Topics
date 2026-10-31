@@ -1,40 +1,51 @@
 /* Clio — the only place the frontend talks to the Python backend.
-   No backend is connected yet: CLIO_CONFIG.apiBase is null, so every call resolves to
-   { ok: false, notConnected: true } and nothing leaves the browser.
-
-   To connect the backend, set before the scripts load, e.g.
-     <script>window.CLIO_CONFIG = { apiBase: "/api" };</script>
-   and make the endpoints below accept and return JSON:
-     POST {apiBase}/auth/login/    { email, password }                -> { user }
-     POST {apiBase}/auth/signup/   { name, email, password }          -> { user }
-     POST {apiBase}/matches/       { title, abstract, keywords }      -> { studies: [{ title, score, source, year, authors, summary, sharedTerms, difference }] }
-   Errors should return a non-2xx status with { message } (and optionally { errors: { field: message } }). */
+   CLIO_CONFIG.apiBase (core/config.js) points at the Flask backend. If it is empty, every call
+   resolves to { ok: false, notConnected: true } and the page shows labelled sample studies.
+   Endpoints (all JSON; errors are non-2xx with { message, errors? }):
+     POST  {apiBase}/matches/                          guest match, nothing saved
+     GET   {apiBase}/projects/                         signed-in user's projects
+     POST  {apiBase}/projects/                         match and save
+     GET   {apiBase}/projects/<id>/                    one saved project with its matches
+     PATCH {apiBase}/projects/<id>/matches/<studyId>/  { relation, difference } */
 class ApiClient {
-  constructor(config = window.CLIO_CONFIG || {}) {
+  constructor(config = window.CLIO_CONFIG || {}, getToken = () => null) {
     this.base = config.apiBase ? String(config.apiBase).replace(/\/+$/, "") : null;
     this.timeoutMs = config.timeoutMs || 15000;
+    this.getToken = getToken;
   }
 
   get connected() {
     return Boolean(this.base);
   }
 
-  /* Django's CSRF cookie, sent back as a header on POST. */
-  csrfToken() {
-    const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
-    return match ? decodeURIComponent(match[1]) : "";
+  get(path) {
+    return this.send("GET", path);
   }
 
-  async post(path, body) {
+  post(path, body) {
+    return this.send("POST", path, body);
+  }
+
+  patch(path, body) {
+    return this.send("PATCH", path, body);
+  }
+
+  /* Sends the Supabase access token (if signed in) so Flask knows who the user is. */
+  async send(method, path, body) {
     if (!this.connected) return { ok: false, notConnected: true };
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    const headers = { Accept: "application/json" };
+    if (body !== undefined) headers["Content-Type"] = "application/json";
+    const token = this.getToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
     try {
       const response = await fetch(`${this.base}${path}`, {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json", Accept: "application/json", "X-CSRFToken": this.csrfToken() },
-        body: JSON.stringify(body),
+        method,
+        credentials: "omit",
+        cache: "no-store",
+        headers,
+        body: body === undefined ? undefined : JSON.stringify(body),
         signal: controller.signal,
       });
       const data = await response.json().catch(() => ({}));
@@ -139,7 +150,7 @@ class SupabaseAuth {
 
 /* Clio — backend operations used by the controllers. */
 class ClioApi {
-  constructor(client = new ApiClient(), auth = new SupabaseAuth()) {
+  constructor(auth = new SupabaseAuth(), client = new ApiClient(window.CLIO_CONFIG || {}, () => auth.session && auth.session.accessToken)) {
     this.client = client;
     this.auth = auth;
   }
@@ -165,8 +176,10 @@ class ClioApi {
   /* Related studies for a project. Until matching is connected this returns clearly labelled
      sample placeholders (isSample: true), never scores presented as real TF-IDF results. */
   async relatedStudies(project) {
-    const result = await this.client.post("/matches/", { title: project.title, abstract: project.abstract, keywords: project.keywords });
-    if (result.ok) return { isSample: false, studies: result.data.studies || [] };
+    const body = { title: project.title, abstract: project.abstract, keywords: project.keywords };
+    /* Signed in: the backend matches AND saves the project. Guest: it only matches. */
+    const result = await this.client.post(this.signedIn ? "/projects/" : "/matches/", body);
+    if (result.ok) return { isSample: false, studies: result.data.studies || [], projectId: result.data.project ? result.data.project.id : null };
     if (!result.notConnected) return { isSample: false, studies: [], error: result.message, errors: result.errors || {} };
     return {
       isSample: true,
@@ -187,5 +200,24 @@ class ClioApi {
         details: { studyType: "Not stated", citedBy: "—", access: "Not stated", setting: "Not stated" },
       })),
     };
+  }
+
+  /* The signed-in user's saved projects: [{ id, title, createdAt }]. */
+  async listProjects() {
+    const result = await this.client.get("/projects/");
+    return result.ok ? result.data.projects || [] : [];
+  }
+
+  /* One saved project with its matches, in the same shape as relatedStudies(). */
+  async loadProject(id) {
+    const result = await this.client.get(`/projects/${encodeURIComponent(id)}/`);
+    if (!result.ok) return { error: result.message };
+    return { project: result.data.project, match: { isSample: false, studies: result.data.studies || [], projectId: id } };
+  }
+
+  /* Saves the relevance label and/or the "how my work differs" note. Returns { ok, warnings, message, errors }. */
+  async saveLabel(projectId, studyId, changes) {
+    const result = await this.client.patch(`/projects/${encodeURIComponent(projectId)}/matches/${encodeURIComponent(studyId)}/`, changes);
+    return result.ok ? { ok: true, warnings: result.data.warnings || [] } : result;
   }
 }

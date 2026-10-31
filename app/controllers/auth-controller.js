@@ -67,6 +67,10 @@ class AuthController {
     guest.hidden = true;
     guest.style.display = "none"; /* .auth-nav__guest sets display:flex, which would beat [hidden] */
     account.hidden = false;
+    /* Tells the sidebar to load this user's saved projects. */
+    document.dispatchEvent(new CustomEvent("clio:signed-in"));
+  }
+
   }
 
   dialog() {

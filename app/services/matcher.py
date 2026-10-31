@@ -11,7 +11,7 @@ from typing import Optional
 from app.config import Settings, get_settings
 from app.models.study_model import StudyModel
 from app.services.tfidf import Scored, StudyIndex
-from app.services.tokenizer import build_display_words, build_token_list
+from app.services.tokenizer import build_display_words, build_token_list, tokenize_pairs
 from app.services.validation import validate_input
 
 MAX_SHARED_WORDS = 8
@@ -30,7 +30,18 @@ def similarity_label(score: float, settings: Settings) -> str:
     return "Low similarity"
 
 
-def shape_match(result: Scored, display: dict, settings: Settings) -> dict:
+def missing_terms(study, keywords) -> list:
+    """Words from the project's keywords that never appear in the study (stemmed, so 'sensors' = 'sensor')."""
+    study_stems = set(build_token_list(study.title, study.abstract, study.keywords, 1))
+    seen, words = set(), []
+    for stem, word in tokenize_pairs(" ".join(keywords or [])):
+        if stem not in study_stems and stem not in seen:
+            seen.add(stem)
+            words.append(word)
+    return words[:MAX_SHARED_WORDS]
+
+
+def shape_match(result: Scored, display: dict, keywords: list, settings: Settings) -> dict:
     """One Scored result as the dict the rest of the backend works with."""
     study, score = result.study, to_percent(result.score)
     return {
@@ -44,6 +55,7 @@ def shape_match(result: Scored, display: dict, settings: Settings) -> dict:
         "authors": ", ".join(study.authors),
         "abstract": study.abstract,
         "shared_terms": [display.get(term, term) for term, _ in result.shared[:MAX_SHARED_WORDS]],
+        "missing_terms": missing_terms(study, keywords),
         "url": study.url,
         "study_type": study.study_type,
         "cited_by": study.cited_by,
@@ -84,7 +96,7 @@ class MatchService:
         tokens = build_token_list(data["title"], data["abstract"], data["keywords"], self.settings.keyword_boost)
         display = build_display_words(data["title"], data["abstract"], data["keywords"])
         results = self.get_index().compare(tokens, self.settings.min_score, limit)
-        return list(map(partial(shape_match, display=display, settings=self.settings), results))
+        return list(map(partial(shape_match, display=display, keywords=data["keywords"], settings=self.settings), results))
 
 _default_service: Optional[MatchService] = None
 
