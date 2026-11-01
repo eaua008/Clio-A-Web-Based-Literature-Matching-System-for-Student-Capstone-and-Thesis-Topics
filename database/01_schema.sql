@@ -1,19 +1,26 @@
--- Clio schema: tables, indexes, triggers. Run first. Safe to re-run.
+
 
 create extension if not exists pg_trgm;
 
+-- ---------------------------------------------------------------- profiles
+-- One row per Supabase Auth user. The sign-up form sends { name, email, password };
+-- pass name as options.data.full_name to supabase.auth.signUp().
 create table if not exists public.profiles (
   id          uuid primary key references auth.users (id) on delete cascade,
   full_name   text not null default '' check (char_length(full_name) <= 120),
   created_at  timestamptz not null default now()
 );
 
+-- ----------------------------------------------------------------- studies
+-- The corpus that student projects are matched against.
+-- Loaded by the service role only (see 02_rls.sql). Real and sample rows
+-- are kept apart by is_sample so a placeholder can never pass as a real study.
 create table if not exists public.studies (
   id            uuid primary key default gen_random_uuid(),
   source_type   text not null
                 check (source_type in ('paper', 'patent', 'github', 'local_thesis')),
-  source_name   text not null,
-  external_id   text,
+  source_name   text not null,              -- display label, e.g. 'OpenAlex', 'Local School Theses'
+  external_id   text,                       -- id in the origin system, makes loads repeatable
   title         text not null check (char_length(btrim(title)) > 0),
   abstract      text,
   authors       text[] not null default '{}',
@@ -22,15 +29,15 @@ create table if not exists public.studies (
   url           text check (url is null or url ~* '^https?://'),
   doi           text,
   keywords      text[] not null default '{}',
-  study_type    text,
+  study_type    text,                       -- Prototype, Review, Patent, Code project, ...
   cited_by      integer check (cited_by is null or cited_by >= 0),
-  access        text,
-  setting       text,
-  license       text,
-  data_source   text,
+  access        text,                       -- Open access, Public record, Open license, ...
+  setting       text,                       -- country or context when stated
+  license       text,                       -- licence of the record / content we keep
+  data_source   text,                       -- where we fetched it from
   fetched_at    timestamptz,
   is_sample     boolean not null default false,
-  search        tsvector,
+  search        tsvector,                   -- maintained by trigger below
   created_at    timestamptz not null default now()
 );
 
@@ -61,6 +68,8 @@ create trigger studies_set_search
   before insert or update of title, abstract, keywords on public.studies
   for each row execute function public.studies_set_search();
 
+-- ---------------------------------------------------------------- projects
+-- A student's own project (the form on the main screen).
 create table if not exists public.projects (
   id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null default auth.uid() references auth.users (id) on delete cascade,
@@ -93,6 +102,8 @@ create trigger projects_touch_updated_at
   before update on public.projects
   for each row execute function public.touch_updated_at();
 
+-- ----------------------------------------------------------- project_matches
+-- A study flagged for a project, plus what the student wrote about it.
 create table if not exists public.project_matches (
   id             uuid primary key default gen_random_uuid(),
   project_id     uuid not null references public.projects (id) on delete cascade,
@@ -117,6 +128,8 @@ create trigger project_matches_touch_updated_at
   before update on public.project_matches
   for each row execute function public.touch_updated_at();
 
+-- High / Medium / Low band, same cut-offs as ProjectResults.similarity() in the frontend.
+-- Recalibrate here and there together once real data is loaded.
 create or replace view public.project_matches_view
 with (security_invoker = true) as
 select
@@ -126,6 +139,7 @@ select
        else 'Low similarity' end as similarity
 from public.project_matches m;
 
+-- ------------------------------------------------- new-user profile trigger
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql

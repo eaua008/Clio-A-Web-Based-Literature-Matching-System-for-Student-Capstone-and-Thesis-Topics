@@ -1,5 +1,27 @@
+# Secrets
 .env
+.env.*
+
+# Python
+venv/
 __pycache__/
 .pytest_cache/
-venv/
+*.pyc
+
+# Tests
 tests/
+
+# Backups
+*.zip
+django-version-backup.zip
+
+# Local-only SQL (Image 2)
+database/tools/undo_clio_in_akeso.sql
+
+# Editor / tool folders
+.claude/
+.vscode/
+
+# OS junk
+.DS_Store
+Thumbs.db
