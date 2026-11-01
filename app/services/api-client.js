@@ -65,19 +65,35 @@ class ApiClient {
   }
 }
 
-/* Clio — backend operations used by the controllers. */
+/* Clio — backend operations used by the controllers.
+   Flask first. When the page is served without Flask (GitHub Pages, Live Preview), restore() finds
+   that {apiBase}/auth/me/ doesn't answer and every call goes to SupabaseDirect (services/supabase-direct.js)
+   instead, which talks to Supabase straight from the browser. */
 class ClioApi {
-  constructor(client = new ApiClient()) {
+  constructor(client = new ApiClient(), fallback = typeof SupabaseDirect === "function" ? new SupabaseDirect() : null) {
     this.client = client;
     this.user = null;
+    this.fallback = fallback && fallback.connected ? fallback : null;
+    this.direct = !client.connected ? this.fallback : null;
   }
 
   get connected() {
-    return this.client.connected;
+    return this.client.connected || Boolean(this.fallback);
   }
 
   get signedIn() {
-    return Boolean(this.user);
+    return this.direct ? this.direct.signedIn : Boolean(this.user);
+  }
+
+  /* True when Flask answers {apiBase}/auth/me/ with JSON; a static host answers 404/405 or an HTML page. */
+  async flaskAnswers() {
+    if (!this.client.connected) return false;
+    try {
+      const response = await fetch(`${this.client.base}/auth/me/`, { credentials: "same-origin", cache: "no-store", headers: { Accept: "application/json" } });
+      return response.ok && (response.headers.get("content-type") || "").includes("application/json");
+    } catch (error) {
+      return false;
+    }
   }
 
   /* Remembers the user from a successful login or sign-up response. */
@@ -87,14 +103,17 @@ class ClioApi {
   }
 
   async login(email, password) {
+    if (this.direct) return this.direct.login(email, password);
     return this.adopt(await this.client.post("/auth/login/", { email, password }));
   }
 
   async signup(name, email, password) {
+    if (this.direct) return this.direct.signup(name, email, password);
     return this.adopt(await this.client.post("/auth/signup/", { name, email, password }));
   }
 
   async logout() {
+    if (this.direct) return this.direct.logout();
     this.user = null;
     await this.client.post("/auth/logout/", {});
     return { ok: true };
@@ -102,6 +121,8 @@ class ClioApi {
 
   /* On page load: asks Flask whether the cookies still hold a session. Returns the user or null. */
   async restore() {
+    if (!this.direct && this.fallback && !(await this.flaskAnswers())) this.direct = this.fallback;
+    if (this.direct) return this.direct.restore();
     const result = await this.client.get("/auth/me/");
     this.user = result.ok && result.data.user ? result.data.user : null;
     return this.user;
@@ -110,6 +131,7 @@ class ClioApi {
   /* Related studies for a project. Until matching is connected this returns clearly labelled
      sample placeholders (isSample: true), never scores presented as real TF-IDF results. */
   async relatedStudies(project) {
+    if (this.direct) return this.direct.relatedStudies(project);
     const body = { title: project.title, abstract: project.abstract, keywords: project.keywords };
     /* Signed in: the backend matches AND saves the project. Guest: it only matches. */
     const result = await this.client.post(this.signedIn ? "/projects/" : "/matches/", body);
@@ -138,12 +160,14 @@ class ClioApi {
 
   /* The signed-in user's saved projects: [{ id, title, createdAt }]. */
   async listProjects() {
+    if (this.direct) return this.direct.listProjects();
     const result = await this.client.get("/projects/");
     return result.ok ? result.data.projects || [] : [];
   }
 
   /* One saved project with its matches, in the same shape as relatedStudies(). */
   async loadProject(id) {
+    if (this.direct) return this.direct.loadProject(id);
     const result = await this.client.get(`/projects/${encodeURIComponent(id)}/`);
     if (!result.ok) return { error: result.message };
     return { project: result.data.project, match: { isSample: false, studies: result.data.studies || [], projectId: id } };
@@ -151,6 +175,7 @@ class ClioApi {
 
   /* Saves the relevance label and/or the "how my work differs" note. Returns { ok, warnings, message, errors }. */
   async saveLabel(projectId, studyId, changes) {
+    if (this.direct) return this.direct.saveLabel(projectId, studyId, changes);
     const result = await this.client.patch(`/projects/${encodeURIComponent(projectId)}/matches/${encodeURIComponent(studyId)}/`, changes);
     return result.ok ? { ok: true, warnings: result.data.warnings || [] } : result;
   }
