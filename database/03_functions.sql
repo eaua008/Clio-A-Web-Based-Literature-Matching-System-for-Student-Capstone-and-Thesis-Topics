@@ -31,7 +31,7 @@ set search_path = public
 as $$
 #variable_conflict use_column
 declare
-  v_limit    integer := least(greatest(coalesce(p_limit, 5), 1), 20);
+  v_limit    integer := least(greatest(coalesce(p_limit, 5), 1), 30);
   v_keywords text[]  := coalesce(p_keywords, '{}');
   v_text     text;
 begin

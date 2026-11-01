@@ -42,8 +42,11 @@ class ProjectMatch:
         return cls(study=study, score=result["score"], shared_terms=list(result["shared_terms"]))
 
     def to_row(self, project_id: str) -> dict:
-        return {"project_id": project_id, "study_id": self.study.id,
-                "score": self.score, "shared_terms": self.shared_terms}
+        row = {"project_id": project_id, "study_id": self.study.id,
+               "score": self.score, "shared_terms": self.shared_terms}
+        if self.relation or self.difference:
+            row.update(relation=self.relation, difference=self.difference or None)
+        return row
 
     def similarity(self, settings: Settings) -> str:
         return similarity_label(self.score, settings)
@@ -107,6 +110,14 @@ class ProjectRepository(ABC):
     def save_label(self, project: Project, match: ProjectMatch) -> None:
         """Saves a match's relation and difference note."""
 
+    def update_project(self, project: Project, title: str, abstract: str, keywords: list, matches: list) -> Project:
+        """Replaces a project's text and its matches."""
+        raise NotImplementedError
+
+    def delete_project(self, project: Project) -> None:
+        """Deletes a project; its matches go with it."""
+        raise NotImplementedError
+
 
 class SupabaseProjectRepository(SupabaseClient, ProjectRepository):
     """Projects in Supabase. The user's token is sent, so row level security allows only their rows."""
@@ -147,3 +158,17 @@ class SupabaseProjectRepository(SupabaseClient, ProjectRepository):
                       {"project_id": f"eq.{project.id}", "study_id": f"eq.{match.study.id}"},
                       body={"relation": match.relation, "difference": match.difference or None},
                       returning=False)
+
+    def update_project(self, project: Project, title: str, abstract: str, keywords: list, matches: list) -> Project:
+        self._request("PATCH", "projects", {"id": f"eq.{project.id}"},
+                      body={"title": title, "abstract": abstract, "keywords": keywords}, returning=False)
+        self._request("DELETE", "project_matches", {"project_id": f"eq.{project.id}"}, returning=False)
+        if matches:
+            self._request("POST", "project_matches", body=[m.to_row(project.id) for m in matches], returning=False)
+        project.title, project.abstract, project.keywords = title, abstract, keywords
+        project.matches = list(matches)
+        return project
+
+    def delete_project(self, project: Project) -> None:
+        """The database removes the project's matches with it (on delete cascade)."""
+        self._request("DELETE", "projects", {"id": f"eq.{project.id}"}, returning=False)

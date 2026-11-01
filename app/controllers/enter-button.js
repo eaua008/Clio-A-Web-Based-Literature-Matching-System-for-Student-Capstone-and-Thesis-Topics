@@ -40,13 +40,26 @@ class EnterButton {
     if (this.keywordInput.value.trim()) this.addTyped();
     this.showErrors({});
     this.busy = true;
+    const button = document.getElementById("form-submit");
+    const previous = this.results.current;
+    button.disabled = true;
+    button.textContent = "Matching…";
+    this.results.loading(project, "Finding related studies…");
     try {
-      const match = await this.api.relatedStudies(project);
-      if (Object.keys(match.errors || {}).length) return this.showErrors(match.errors);
+      /* An open saved project is updated in place; New Project starts a fresh one. */
+      const open = this.nav.projects.find((p) => p.id === this.nav.activeId && p.saved);
+      const match = await this.api.relatedStudies(project, open ? open.id : null);
+      if (Object.keys(match.errors || {}).length) {
+        if (previous) this.results.show(previous.project, previous.match);
+        else this.results.hide();
+        return this.showErrors(match.errors);
+      }
       this.results.show(project, match);
       this.nav.add(project, match);
     } finally {
       this.busy = false;
+      button.disabled = false;
+      button.textContent = "Enter";
     }
   }
 

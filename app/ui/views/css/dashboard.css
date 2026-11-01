@@ -52,6 +52,17 @@
 .project-link__title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .project-link:hover { background: rgba(128, 0, 255, .12); color: var(--text); }
 .project-link.is-active { background: rgba(128, 0, 255, .22); color: var(--text); border-color: var(--border-strong); box-shadow: inset 3px 0 0 var(--neon); }
+.project-list li { position: relative; }
+.project-list li .project-link { padding-right: 38px; }
+.project-delete {
+  position: absolute; top: 50%; right: 6px; transform: translateY(-50%);
+  display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: var(--radius-sm);
+  background: transparent; color: var(--text-2); cursor: pointer; opacity: 0; transition: opacity .15s, background .15s, color .15s;
+}
+.project-delete svg.lucide { width: 15px; height: 15px; }
+.project-list li:hover .project-delete, .project-delete:focus-visible, .project-link.is-active + .project-delete { opacity: 1; }
+.project-delete:hover, .project-delete:focus-visible { background: rgba(255, 70, 110, .16); color: #ff6b8a; }
+@media (hover: none) { .project-delete { opacity: 1; } }
 
 /* Collapsed rail (desktop) */
 .sidebar-collapsed .sidebar { flex-basis: var(--sidebar-rail); width: var(--sidebar-rail); padding-inline: 12px; }
@@ -64,6 +75,7 @@
 .sidebar-collapsed .project-link__title { display: none; }
 /* Rail keeps the project icons so projects stay selectable; titles show as tooltips. */
 .sidebar-collapsed .project-link { justify-content: center; padding-inline: 0; }
+.sidebar-collapsed .project-delete { display: none; }
 .sidebar-collapsed .new-project-btn { justify-content: center; padding: 0; }
 /* Empty projects: icon only on the rail; the message stays for screen readers. Desktop only (mobile drawer is always full). */
 @media (min-width: 769px) {
@@ -155,6 +167,27 @@
 .main.is-results .results-wrap { grid-column: 1 / -1; justify-self: stretch; width: 100%; max-width: none; margin-left: 0; }
 .results { padding: 0; border: 0; }
 .results__note { font-size: 11px; color: var(--text-2); margin: 0 0 10px 6px; }
+.results__loading {
+  display: flex; align-items: center; justify-content: center; gap: 12px; padding: 34px 20px;
+  border: 1px dashed var(--border); border-radius: 22px; color: var(--text-2); font-size: 14px; list-style: none;
+}
+.results__spinner {
+  width: 22px; height: 22px; border-radius: 50%; flex: none;
+  border: 3px solid rgba(176, 0, 255, .25); border-top-color: var(--neon); animation: spin .8s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) { .results__spinner { animation-duration: 2.4s; } }
+
+.confirm-dialog {
+  width: min(420px, calc(100vw - 32px)); padding: 24px; border: 1px solid var(--border-strong); border-radius: 18px;
+  background: var(--sidebar); color: var(--text); box-shadow: 0 20px 60px rgba(0, 0, 0, .6);
+}
+.confirm-dialog::backdrop { background: rgba(4, 2, 8, .65); }
+.confirm-dialog__title { margin: 0 0 10px; font-size: 18px; }
+.confirm-dialog__text { margin: 0; color: var(--text-2); font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.confirm-dialog__text strong { color: var(--text); }
+.confirm-dialog__error { min-height: 1em; margin: 10px 0 0; color: var(--danger-text); font-size: 13px; }
+.confirm-dialog__error:empty { display: none; }
+.confirm-dialog__actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 .results__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
 .result { border: 3px solid #4B0EA8; border-radius: 999px; overflow: hidden; }
 .result.is-open { border-radius: 22px; background: #2B1650; }

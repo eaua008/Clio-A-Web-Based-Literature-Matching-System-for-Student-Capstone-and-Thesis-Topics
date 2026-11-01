@@ -3,6 +3,8 @@
 GET   /api/projects/                              the user's projects, newest first
 POST  /api/projects/                              match a project and save it with its matches
 GET   /api/projects/<id>/                         one project with its saved matches
+PUT   /api/projects/<id>/                         match the edited project again and replace its matches
+DELETE /api/projects/<id>/                        delete a project and its matches
 PATCH /api/projects/<id>/matches/<study_id>/      save the relevance label and "how my work differs" note
 """
 from flask import jsonify
@@ -37,6 +39,8 @@ class ProjectController(BaseController):
             ("/", self.index, ["GET"]),
             ("/", self.create, ["POST"]),
             ("/<project_id>/", self.show, ["GET"]),
+            ("/<project_id>/", self.update, ["PUT"]),
+            ("/<project_id>/", self.destroy, ["DELETE"]),
             ("/<project_id>/matches/<study_id>/", self.label, ["PATCH"]),
         ]
 
@@ -74,6 +78,30 @@ class ProjectController(BaseController):
         user, repository = self._session()
         project = self._owned_project(repository, user, project_id, "view")
         return jsonify(ProjectView(SavedMatchView(project.keywords, get_settings())).render(project))
+
+    def update(self, project_id):
+        """Re-matches an edited project. Labels and notes are kept for studies that still match."""
+        user, repository = self._session()
+        project = self._owned_project(repository, user, project_id, "edit")
+        body = self.json_body()
+        data = validate_input(body.get("title"), body.get("abstract"), body.get("keywords"))
+        results = self.find_matches(data["title"], data["abstract"], data["keywords"], body.get("limit"))
+        old = {m.study.id: m for m in project.matches}
+        matches = []
+        for result in results:
+            match = ProjectMatch.from_result(result, Study(id=result["study_id"], title=result["title"]))
+            if result["study_id"] in old:
+                match.relation, match.difference = old[result["study_id"]].relation, old[result["study_id"]].difference
+                result.update(relation=match.relation, difference=match.difference)
+            matches.append(match)
+        project = repository.update_project(project, data["title"], data["abstract"], data["keywords"], matches)
+        return jsonify(ProjectView(StudyMatchView()).render(project, matches=results))
+
+    def destroy(self, project_id):
+        user, repository = self._session()
+        project = self._owned_project(repository, user, project_id, "delete")
+        repository.delete_project(project)
+        return jsonify({"ok": True})
 
     def label(self, project_id, study_id):
         user, repository = self._session()

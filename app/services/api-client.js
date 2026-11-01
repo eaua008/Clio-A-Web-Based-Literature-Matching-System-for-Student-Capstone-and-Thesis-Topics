@@ -15,11 +15,13 @@
      GET   {apiBase}/projects/                         signed-in user's projects
      POST  {apiBase}/projects/                         match and save
      GET   {apiBase}/projects/<id>/                    one saved project with its matches
+     PUT   {apiBase}/projects/<id>/                    match the edited project again, keep its labels
+     DELETE {apiBase}/projects/<id>/                   delete a project and its matches
      PATCH {apiBase}/projects/<id>/matches/<studyId>/  { relation, difference } */
 class ApiClient {
   constructor(config = window.CLIO_CONFIG || {}) {
     this.base = config.apiBase ? String(config.apiBase).replace(/\/+$/, "") : null;
-    this.timeoutMs = config.timeoutMs || 15000;
+    this.timeoutMs = config.timeoutMs || 30000;
   }
 
   get connected() {
@@ -36,6 +38,14 @@ class ApiClient {
 
   patch(path, body) {
     return this.send("PATCH", path, body);
+  }
+
+  put(path, body) {
+    return this.send("PUT", path, body);
+  }
+
+  delete(path) {
+    return this.send("DELETE", path);
   }
 
   async send(method, path, body) {
@@ -130,11 +140,13 @@ class ClioApi {
 
   /* Related studies for a project. Until matching is connected this returns clearly labelled
      sample placeholders (isSample: true), never scores presented as real TF-IDF results. */
-  async relatedStudies(project) {
-    if (this.direct) return this.direct.relatedStudies(project);
-    const body = { title: project.title, abstract: project.abstract, keywords: project.keywords };
-    /* Signed in: the backend matches AND saves the project. Guest: it only matches. */
-    const result = await this.client.post(this.signedIn ? "/projects/" : "/matches/", body);
+  async relatedStudies(project, savedId = null) {
+    if (this.direct) return this.direct.relatedStudies(project, savedId);
+    const body = { title: project.title, abstract: project.abstract, keywords: project.keywords, limit: 30 };
+    /* Signed in: the backend matches AND saves the project (updating savedId when given). Guest: it only matches. */
+    const result = !this.signedIn ? await this.client.post("/matches/", body)
+      : savedId ? await this.client.put(`/projects/${encodeURIComponent(savedId)}/`, body)
+      : await this.client.post("/projects/", body);
     if (result.ok) return { isSample: false, studies: result.data.studies || [], projectId: result.data.project ? result.data.project.id : null };
     if (!result.notConnected) return { isSample: false, studies: [], error: result.message, errors: result.errors || {} };
     return {
@@ -171,6 +183,13 @@ class ClioApi {
     const result = await this.client.get(`/projects/${encodeURIComponent(id)}/`);
     if (!result.ok) return { error: result.message };
     return { project: result.data.project, match: { isSample: false, studies: result.data.studies || [], projectId: id } };
+  }
+
+  /* Deletes a saved project and its matches. Returns { ok } or { ok: false, message }. */
+  async deleteProject(id) {
+    if (this.direct) return this.direct.deleteProject(id);
+    const result = await this.client.delete(`/projects/${encodeURIComponent(id)}/`);
+    return result.ok ? { ok: true } : result;
   }
 
   /* Saves the relevance label and/or the "how my work differs" note. Returns { ok, warnings, message, errors }. */

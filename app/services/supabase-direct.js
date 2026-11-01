@@ -192,16 +192,18 @@ class SupabaseDirect {
     };
   }
 
-  /* Guest: match only. Signed in: match, then save the project and its matches (like POST /api/projects/). */
-  async relatedStudies(project) {
+  /* Guest: match only. Signed in: match, then save the project and its matches (like POST /api/projects/),
+     or, with savedId, replace that project's text and matches and keep its labels (like PUT /api/projects/<id>/). */
+  async relatedStudies(project, savedId = null) {
     const { data, errors } = this.validate(project);
     if (Object.keys(errors).length) return { isSample: false, studies: [], error: "Please fix the highlighted fields.", errors };
-    const body = { p_title: data.title, p_abstract: data.abstract, p_keywords: data.keywords, p_limit: 5 };
+    const body = { p_title: data.title, p_abstract: data.abstract, p_keywords: data.keywords, p_limit: 30 };
     const matched = this.signedIn ? await this.rest("POST", "/rpc/match_studies", body) : await this.call("POST", "/rest/v1/rpc/match_studies", body);
     if (!matched.ok) return { isSample: false, studies: [], ...this.failure(matched, "Couldn't find related studies right now. Please try again.") };
     const rows = Array.isArray(matched.data) ? matched.data : [];
     const studies = rows.map((r) => this.shape(r, data.keywords));
     if (!this.signedIn) return { isSample: false, studies, projectId: null };
+    if (savedId) return this.updateProject(savedId, data, rows, studies);
 
     const unsaved = { isSample: false, studies, projectId: null, error: "Matched, but the project couldn't be saved to your account." };
     const saved = await this.rest("POST", "/projects?select=id", data, "return=representation");
@@ -217,6 +219,33 @@ class SupabaseDirect {
     }
     this.scores[projectId] = Object.fromEntries(rows.map((r) => [r.study_id, Number(r.score)]));
     return { isSample: false, studies, projectId };
+  }
+
+  async updateProject(id, data, rows, studies) {
+    const failed = { isSample: false, studies, projectId: id, error: "Matched, but the project couldn't be updated in your account." };
+    const old = await this.rest("GET", `/project_matches?select=study_id,relation,difference&project_id=eq.${encodeURIComponent(id)}`);
+    if (!old.ok) return failed;
+    const labels = Object.fromEntries(old.data.map((m) => [m.study_id, m]));
+    const updated = await this.rest("PATCH", `/projects?id=eq.${encodeURIComponent(id)}&select=id`, data, "return=representation");
+    if (!updated.ok || !updated.data.length) return failed;
+    const cleared = await this.rest("DELETE", `/project_matches?project_id=eq.${encodeURIComponent(id)}`);
+    if (!cleared.ok) return failed;
+    const links = rows.map((r) => {
+      const label = labels[r.study_id] || {};
+      return { project_id: id, study_id: r.study_id, score: Number(r.score), shared_terms: r.shared_terms || [], relation: label.relation || null, difference: label.difference || null };
+    });
+    if (links.length && !(await this.rest("POST", "/project_matches", links, "return=minimal")).ok) return failed;
+    studies.forEach((s) => { const label = labels[s.studyId]; if (label) Object.assign(s, { relation: label.relation || null, difference: label.difference || "" }); });
+    this.scores[id] = Object.fromEntries(rows.map((r) => [r.study_id, Number(r.score)]));
+    return { isSample: false, studies, projectId: id };
+  }
+
+  /* Row level security lets users delete only their own projects; their matches go with them (on delete cascade). */
+  async deleteProject(id) {
+    const result = await this.rest("DELETE", `/projects?id=eq.${encodeURIComponent(id)}&select=id`, undefined, "return=representation");
+    if (!result.ok || !result.data.length) return this.failure(result.ok ? { status: 404 } : result, "Couldn't delete this project.");
+    delete this.scores[id];
+    return { ok: true };
   }
 
   async listProjects() {

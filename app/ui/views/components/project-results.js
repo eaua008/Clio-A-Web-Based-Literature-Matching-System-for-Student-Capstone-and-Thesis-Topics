@@ -151,10 +151,22 @@ class ProjectResults {
     `;
   }
 
-  /* match: { isSample, studies, error? } from ClioApi.relatedStudies(). */
+  /* Shows a spinner in the results area while studies are fetched, so the wait doesn't look like a freeze. */
+  loading(project, message) {
+    this.show(project, { isSample: false, studies: [], loading: message });
+  }
+
+  /* match: { isSample, studies, error? } from ClioApi.relatedStudies(), or { loading } from loading(). */
   show(project, match) {
-    this.current = { project, match };
-    this.note.textContent = match.error || (match.isSample ? this.sampleNote : "");
+    if (!match.loading) this.current = { project, match };
+    this.view.setAttribute("aria-busy", String(Boolean(match.loading)));
+    if (match.loading) {
+      this.note.textContent = "";
+      this.list.innerHTML = `<li class="results__loading" role="status"><span class="results__spinner" aria-hidden="true"></span><span></span></li>`;
+      this.list.querySelector(".results__loading span:last-child").textContent = match.loading;
+    } else {
+    this.note.textContent = match.error || (match.isSample ? this.sampleNote : "")
+      || (match.studies.length ? "" : "No related studies were found for this project. Try more specific keywords.");
     this.list.innerHTML = match.studies.map((s, i) => `
       <li class="result" data-index="${i}">
         <button type="button" class="result__head" aria-expanded="false" aria-controls="result-body-${i}">
@@ -168,6 +180,7 @@ class ProjectResults {
         </div>
       </li>
     `).join("");
+    }
 
     if (!this.title) {
       this.title = document.createElement("h1");

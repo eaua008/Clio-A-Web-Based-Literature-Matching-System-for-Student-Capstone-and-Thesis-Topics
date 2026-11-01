@@ -200,11 +200,12 @@ class Policy(ABC):
 
 
 class AccessPolicy(Policy):
-    """Only the owner can view or edit a project and its matches."""
+    """Only the owner can view, edit or delete a project and its matches."""
     rules = (
         rule(("owns", "?u", "?p"), Is("project", "?p", "?u")),
         rule(("can", "?u", "view", "?p"), Is("owns", "?u", "?p")),
         rule(("can", "?u", "edit", "?p"), Is("owns", "?u", "?p")),
+        rule(("can", "?u", "delete", "?p"), Is("owns", "?u", "?p")),
         rule(("denied", "?u", "?a", "?p"), Is("request", "?u", "?a", "?p"), Not("can", "?u", "?a", "?p")),
     )
 

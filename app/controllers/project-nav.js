@@ -19,6 +19,8 @@ class ProjectNav {
     this.searchResults = document.getElementById("search-results");
     this.searchToggle = document.querySelector("[data-search-toggle]");
     this.sidebarToggle = document.querySelector("[data-sidebar-toggle]");
+    this.drawerOpener = document.querySelector("[data-sidebar-open]");
+    this.backdrop = document.querySelector("[data-sidebar-close]");
     this.opener = null;
     this.highlight = -1;
   }
@@ -28,12 +30,21 @@ class ProjectNav {
     document.querySelector("[data-new-project]").addEventListener("click", (e) => {
       e.preventDefault();
       this.form.clear();
+      this.closeDrawer();
+    });
+    if (this.drawerOpener) this.drawerOpener.addEventListener("click", () => this.openDrawer());
+    if (this.backdrop) this.backdrop.addEventListener("click", () => this.closeDrawer());
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && document.documentElement.classList.contains("sidebar-open")) this.closeDrawer(true);
     });
     this.list.addEventListener("click", (e) => {
+      const remove = e.target.closest("[data-delete-project]");
+      if (remove) return this.remove(remove.dataset.deleteProject);
       const link = e.target.closest("[data-project-id]");
       if (!link) return;
       e.preventDefault();
       this.open(link.dataset.projectId);
+      this.closeDrawer();
     });
 
     this.searchToggle.addEventListener("click", () => this.openSearch(this.searchToggle));
@@ -98,6 +109,9 @@ class ProjectNav {
   async open(id) {
     const project = this.projects.find((p) => p.id === id);
     if (project.saved && !project.match) {
+      this.form.fill(project.abstract ? project : { title: project.title, abstract: "", keywords: [] });
+      this.select(project.id);
+      this.results.loading(project, "Loading saved results…");
       const loaded = await this.api.loadProject(id);
       if (loaded.error) return this.results.show(project, { isSample: false, studies: [], error: loaded.error });
       Object.assign(project, loaded.project, { match: loaded.match });
@@ -108,8 +122,15 @@ class ProjectNav {
   }
 
   /* match: the related-studies result shown for this project, reused when it is selected again.
-     A saved project (match.projectId) is always a new entry, because the backend saved a new row. */
+     A saved project (match.projectId) updates its entry when it is already listed, otherwise it is a new entry. */
   add(project, match) {
+    const listed = match.projectId && this.projects.find((p) => p.id === match.projectId);
+    if (listed) {
+      Object.assign(listed, project, { match, id: match.projectId, saved: true });
+      this.activeId = match.projectId;
+      this.remember(match.projectId);
+      return this.render();
+    }
     if (match.projectId) {
       this.projects.unshift({ ...project, match, id: match.projectId, saved: true });
       this.activeId = match.projectId;
@@ -121,6 +142,60 @@ class ProjectNav {
     else this.projects.unshift({ ...project, match, id: `p${Date.now()}` });
     this.activeId = active ? active.id : this.projects[0].id;
     this.render();
+  }
+
+  /* Asks first in an in-page dialog (the browser's confirm() is blocked in some browsers, e.g. VS Code's
+     Live Preview). Saved projects are deleted from the account; guest projects only leave the list. */
+  remove(id) {
+    const project = this.projects.find((p) => p.id === id);
+    if (!project) return;
+    const dialog = this.deleteDialog();
+    dialog.querySelector("[data-delete-name]").textContent = project.title;
+    dialog.querySelector("[data-delete-error]").textContent = "";
+    const confirm = dialog.querySelector("[data-delete-confirm]");
+    confirm.disabled = false;
+    confirm.textContent = "Delete";
+    dialog.onconfirm = async () => {
+      if (project.saved) {
+        confirm.disabled = true;
+        confirm.textContent = "Deleting…";
+        const result = await this.api.deleteProject(id);
+        if (!result.ok) {
+          confirm.disabled = false;
+          confirm.textContent = "Delete";
+          dialog.querySelector("[data-delete-error]").textContent = result.message || "Couldn't delete this project.";
+          return;
+        }
+      }
+      dialog.close();
+      this.projects = this.projects.filter((p) => p.id !== id);
+      if (this.activeId === id) this.form.clear();
+      this.render();
+    };
+    dialog.showModal();
+    dialog.querySelector("[data-delete-cancel]").focus();
+  }
+
+  /* Built once, on first use. Text is set with textContent, never as HTML. */
+  deleteDialog() {
+    if (this.dialog) return this.dialog;
+    const dialog = document.createElement("dialog");
+    dialog.className = "confirm-dialog";
+    dialog.setAttribute("aria-labelledby", "delete-title");
+    dialog.innerHTML = `
+      <h2 class="confirm-dialog__title" id="delete-title">Delete project?</h2>
+      <p class="confirm-dialog__text">“<strong data-delete-name></strong>” and its matched studies, labels and notes will be deleted. This can't be undone.</p>
+      <p class="confirm-dialog__error" data-delete-error role="alert"></p>
+      <div class="confirm-dialog__actions">
+        <button type="button" class="btn btn--ghost btn--small" data-delete-cancel>Cancel</button>
+        <button type="button" class="btn btn--danger btn--small" data-delete-confirm>Delete</button>
+      </div>`;
+    dialog.querySelector("[data-delete-cancel]").addEventListener("click", () => dialog.close());
+    dialog.querySelector("[data-delete-confirm]").addEventListener("click", () => dialog.onconfirm && dialog.onconfirm());
+    dialog.addEventListener("click", (e) => { if (e.target === dialog) dialog.close(); });
+    document.body.append(dialog);
+    this.dialog = dialog;
+    return dialog;
   }
 
   /* Moves the highlight only; the list itself is unchanged. */
@@ -139,11 +214,12 @@ class ProjectNav {
     this.list.innerHTML = this.projects.map((p) => `
       <li><a href="#/" class="project-link${p.id === this.activeId ? " is-active" : ""}" data-project-id="${p.id}"${p.id === this.activeId ? ' aria-current="page"' : ""}>
         <i data-lucide="file-text"></i><span class="project-link__title"></span>
-      </a></li>
+      </a><button type="button" class="project-delete" data-delete-project="${p.id}" title="Delete project"><i data-lucide="trash-2"></i></button></li>
     `).join("");
     this.list.querySelectorAll(".project-link").forEach((el, i) => {
       el.querySelector(".project-link__title").textContent = this.projects[i].title;
       el.title = this.projects[i].title;
+      el.nextElementSibling.setAttribute("aria-label", `Delete project ${this.projects[i].title}`);
     });
     this.count.textContent = this.projects.length || "";
     this.empty.hidden = this.projects.length > 0;
@@ -226,6 +302,26 @@ class ProjectNav {
       const i = items.indexOf(document.activeElement);
       e.preventDefault();
       items[(i + (e.shiftKey ? -1 : 1) + items.length) % items.length].focus();
+    }
+  }
+
+  /* Mobile drawer: the menu button in the top bar slides the sidebar in over the page. */
+  openDrawer() {
+    document.documentElement.classList.add("sidebar-open");
+    if (this.backdrop) this.backdrop.hidden = false;
+    if (this.drawerOpener) this.drawerOpener.setAttribute("aria-expanded", "true");
+    const first = document.querySelector("#sidebar [data-new-project]");
+    if (first) first.focus();
+  }
+
+  /* refocus: put focus back on the menu button (when closed with Escape). */
+  closeDrawer(refocus = false) {
+    if (!document.documentElement.classList.contains("sidebar-open")) return;
+    document.documentElement.classList.remove("sidebar-open");
+    if (this.backdrop) this.backdrop.hidden = true;
+    if (this.drawerOpener) {
+      this.drawerOpener.setAttribute("aria-expanded", "false");
+      if (refocus) this.drawerOpener.focus();
     }
   }
 
