@@ -75,6 +75,12 @@
 .sidebar-collapsed .project-link__title { display: none; }
 /* Rail keeps the project icons so projects stay selectable; titles show as tooltips. */
 .sidebar-collapsed .project-link { justify-content: center; padding-inline: 0; }
+@media (min-width: 769px) {
+  .sidebar-collapsed .project-list li .project-link {
+    justify-content: center;
+    padding-inline: 0;
+  }
+}
 .sidebar-collapsed .project-delete { display: none; }
 .sidebar-collapsed .new-project-btn { justify-content: center; padding: 0; }
 /* Empty projects: icon only on the rail; the message stays for screen readers. Desktop only (mobile drawer is always full). */
