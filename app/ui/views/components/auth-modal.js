@@ -45,10 +45,6 @@ class AuthModal {
             <button type="button" class="icon-btn modal__close" data-modal-close aria-label="Close dialog"><i data-lucide="x"></i></button>
             <h2 class="auth-main__title" id="login-title">Sign in</h2>
             <p class="auth-main__sub">Use your CLIO account to match titles and keep your projects.</p>
-            <button type="button" class="social-btn" data-unavailable="Google sign-in isn't configured yet.">
-              <img class="social-btn__google" src="assets/images/google-logo.png" alt="" width="20" height="20">Continue with Google
-            </button>
-            <div class="divider" role="separator"><span>OR</span></div>
             <form class="auth-form" id="login-form" novalidate>
               ${this.field("login-email", "Email address", "email", "email")}
               ${this.field("login-password", "Password", "password", "current-password",
