@@ -26,7 +26,7 @@ class AuthModal {
           <input type="${type}" id="${id}" autocomplete="${autocomplete}" aria-describedby="${id}-error${isPassword && id === "signup-password" ? " signup-password-help" : ""}">
           ${isPassword ? `<button type="button" class="auth-eye" data-toggle-password="${id}" aria-label="Show password" aria-pressed="false"><i data-lucide="eye"></i></button>` : ""}
         </div>
-        ${id === "signup-password" ? `<p class="field__help" id="signup-password-help">At least 8 characters and not only numbers. The server makes the final check.</p>` : ""}
+        ${id === "signup-password" ? `<p class="field__help" id="signup-password-help">At least 8 characters and not only numbers.</p>` : ""}
         <p class="field__error" id="${id}-error" data-error-for="${id}"></p>
       </div>
     `;
