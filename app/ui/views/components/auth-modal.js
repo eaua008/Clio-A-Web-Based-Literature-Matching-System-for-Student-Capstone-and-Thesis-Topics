@@ -3,7 +3,7 @@ class AuthModal {
   brand(heading, text) {
     return `
       <aside class="auth-brand" aria-hidden="true">
-        <div class="auth-brand__logo"><img src="assets/images/logo.png" alt="" width="34" height="43"><span>Clio</span></div>
+        <div class="auth-brand__logo"><img src="assets/images/logo.png" alt="" width="46" height="58"><span>lio</span></div>
         <h2 class="auth-brand__heading">${heading}</h2>
         <p class="auth-brand__text">${text}</p>
         <ul class="auth-brand__features">

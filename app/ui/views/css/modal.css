@@ -14,31 +14,34 @@
 .modal.is-closing .modal__overlay { opacity: 0; transition: opacity .18s; }
 .modal.is-closing .auth-dialog { opacity: 0; transform: translateY(8px) scale(.98); transition: opacity .18s, transform .18s; }
 
-/* Left: purple brand panel */
+/* Left: black brand panel */
 .auth-brand {
   display: flex; flex-direction: column; gap: 10px; padding: 32px 30px;
-  background: radial-gradient(ellipse at 30% 75%, rgba(200, 0, 255, .45), transparent 60%),
-              linear-gradient(160deg, #4A0E9C 0%, #6A00C8 55%, #9A10F5 100%);
+  background: #07040D;
 }
-.auth-brand__logo { display: flex; align-items: center; gap: 8px; font-size: 20px; font-weight: 700; margin-bottom: 26px; }
+.auth-brand__logo { display: flex; align-items: flex-end; margin-bottom: 20px; }
 .auth-brand__logo img { object-fit: contain; }
+.auth-brand__logo span { margin: 0 0 3px -8px; font-family: Arial, Helvetica, sans-serif; font-size: 32px; font-weight: 700; line-height: .8; color: #A020F0; background: linear-gradient(180deg, #4B0E9A, #C800FF 70%, #E000FF);-webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;}
 .auth-brand__heading { font-size: 21px; font-weight: 800; }
-.auth-brand__text { font-size: 14.5px; color: #EDE0FF; line-height: 1.6; }
+.auth-brand__text { font-size: 14.5px; color: #C4B6D6; line-height: 1.6; }
 .auth-brand__features { margin: auto 0 0; padding: 30px 0 0 14px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: #F3EAFF; }
 .auth-brand__features li::marker { color: #fff; }
 
-/* Right: form panel */
-.auth-main { position: relative; display: flex; flex-direction: column; gap: 14px; padding: 36px 36px 22px; }
+/* Right: purple form panel */
+.auth-main { position: relative; display: flex; flex-direction: column; gap: 14px; padding: 36px 36px 22px; background: radial-gradient(ellipse at 70% 80%, rgba(200, 0, 255, .45), transparent 60%), linear-gradient(160deg, #4A0E9C 0%, #6A00C8 55%, #9A10F5 100%);}
 .modal__close { position: absolute; top: 14px; right: 14px; }
 .auth-main__title { font-size: 22px; font-weight: 800; padding-right: 32px; }
-.auth-main__sub { margin-top: -10px; font-size: 13px; color: #C4B6D6; }
+.auth-main__sub { margin-top: -10px; font-size: 13px; color: #EDE0FF; }
 .auth-form { display: flex; flex-direction: column; gap: 12px; }
 .auth-main .field { gap: 6px; }
 .auth-main .field label { font-size: 12.5px; color: #fff; }
-.auth-main .field input { min-height: 46px; background: #12051F; border-color: #2E1145; border-radius: var(--radius-sm); }
+.auth-main .field input { min-height: 46px; background: #07040D; border-color: #2E1145; border-radius: var(--radius-sm); }
+.auth-main .field input:focus { box-shadow: 0 0 0 3px rgba(255, 255, 255, .45); }
+.auth-main .field__help { color: #EDE0FF; }
+.auth-main .field__error { color: #FFD1DE; }
 .auth-main .field--invalid input { border-color: var(--danger); }
 .auth-label-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-.auth-label-row .link-btn { padding: 0; font-size: 12.5px; color: #CDBEE0; }
+.auth-label-row .link-btn { padding: 0; font-size: 12.5px; color: #fff; }
 .auth-input { position: relative; }
 .auth-input:has(.auth-eye) input { padding-right: 46px; }
 .auth-eye {
@@ -49,36 +52,36 @@
 .auth-eye:hover { color: #fff; background: rgba(128, 0, 255, .18); }
 .auth-eye svg.lucide { width: 17px; height: 17px; }
 
-.auth-main .btn--block { background: #7F00FF; border-radius: var(--radius-sm); font-size: 14px; }
-.auth-main .btn--block:hover:not(:disabled) { background: var(--primary-hover); }
+.auth-main .btn--block { background: #07040D; border-radius: var(--radius-sm); font-size: 14px; }
+.auth-main .btn--block:hover:not(:disabled) { background: #1E0B33; box-shadow: none; }
 
-.auth-status { font-size: 13px; color: #D9CCE8; }
+.auth-status { font-size: 13px; color: #fff; }
 .auth-status:empty { display: none; }
-.auth-status[data-kind="error"] { color: var(--danger-text); }
+.auth-status[data-kind="error"] { color: #FFD1DE; }
 
-.auth-switch { text-align: center; font-size: 13px; color: #D9CCE8; }
+.auth-switch { text-align: center; font-size: 13px; color: #fff; }
 .auth-switch__link {
-  background: none; border: 0; padding: 0; color: #D35CFF; font-weight: 600;
+  background: none; border: 0; padding: 0; color: #fff; font-weight: 700;
   text-decoration: underline; text-underline-offset: 3px;
 }
-.auth-switch__link:hover { color: #E89BFF; }
+.auth-switch__link:hover { color: #F3D9FF; }
 
 .auth-note {
-  display: flex; gap: 8px; align-items: flex-start; padding-top: 14px; border-top: 1px solid #2E1145;
-  font-size: 11.5px; color: #B9AACB;
+  display: flex; gap: 8px; align-items: flex-start; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, .25);
+  font-size: 11.5px; color: #EDE0FF;
 }
-.auth-note svg.lucide { width: 14px; height: 14px; color: var(--neon); margin-top: 1px; }
+.auth-note svg.lucide { width: 14px; height: 14px; color: #fff; margin-top: 1px; }
 
 .social-btn {
   display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 44px;
-  background: #12051F; border: 1px solid #2E1145; border-radius: var(--radius-sm);
+  background: #07040D; border: 1px solid #2E1145; border-radius: var(--radius-sm);
   font-weight: 600; font-size: 14px; transition: border-color .15s, background .15s;
 }
-.social-btn:hover { border-color: var(--neon); background: rgba(128, 0, 255, .1); }
+.social-btn:hover { border-color: var(--neon); background: #1E0B33; }
 .social-btn__google { width: auto; height: 20px; object-fit: contain; }
 
-.divider { display: flex; align-items: center; gap: 12px; color: var(--text-2); font-size: 12px; letter-spacing: .12em; }
-.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: #2E1145; }
+.divider { display: flex; align-items: center; gap: 12px; color: #EDE0FF; font-size: 12px; letter-spacing: .12em; }
+.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: rgba(255, 255, 255, .25); }
 
 /* Tablet / mobile: stack the panels, keep the brand compact */
 @media (max-width: 768px) {
