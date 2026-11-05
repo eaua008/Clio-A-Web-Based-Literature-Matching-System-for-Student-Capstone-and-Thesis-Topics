@@ -22,8 +22,6 @@ class AuthController {
       if (go) return this.show(go.dataset.gotoView);
       const eye = e.target.closest("[data-toggle-password]");
       if (eye) return this.togglePassword(eye);
-      const unavailable = e.target.closest("[data-unavailable]");
-      if (unavailable) return this.status(unavailable.closest(".auth-main").querySelector(".auth-status"), unavailable.dataset.unavailable);
     });
     
 

@@ -47,8 +47,7 @@ class AuthModal {
             <p class="auth-main__sub">Use your CLIO account to match titles and keep your projects.</p>
             <form class="auth-form" id="login-form" novalidate>
               ${this.field("login-email", "Email address", "email", "email")}
-              ${this.field("login-password", "Password", "password", "current-password",
-                `<button type="button" class="link-btn" data-unavailable="Password recovery isn't available yet.">Forgot password?</button>`)}
+              ${this.field("login-password", "Password", "password", "current-password")}
               <p class="auth-status" role="status" aria-live="polite"></p>
               <button type="submit" class="btn btn--primary btn--block"><span class="btn__spinner" aria-hidden="true"></span><span>Sign In</span></button>
             </form>

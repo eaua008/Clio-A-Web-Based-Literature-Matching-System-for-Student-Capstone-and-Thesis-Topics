@@ -144,8 +144,6 @@ class ProjectResults {
       <div class="result__actions">
         ${url ? `<a class="result__btn result__btn--primary" href="${this.escape(url)}" target="_blank" rel="noopener noreferrer"><span>Open source</span><i data-lucide="external-link"></i></a>` : `<button type="button" class="result__btn result__btn--primary"${soon}><span>Open source</span><i data-lucide="external-link"></i></button>`}
         <button type="button" class="result__btn" data-copy-citation data-citation="${this.escape(citation)}"${citation ? "" : soon}><i data-lucide="copy"></i><span>Copy citation</span></button>
-        <button type="button" class="result__btn"${soon}>Find more like this</button>
-        <button type="button" class="result__btn"${soon}>Add to literature review</button>
       </div>
       <p class="result__foot">Matching is by shared wording (TF-IDF). A high score means similar text, not proof of duplication. Patent results are not a legal opinion on patentability.</p>
     `;
