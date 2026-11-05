@@ -11,10 +11,9 @@ from app.controllers.frontend_controller import FrontendController
 from app.controllers.match_controller import MatchController
 from app.controllers.project_controller import ProjectController
 from app.errors import AppError
+from app.middleware import register_request_hooks
 from app.models.project_model import SupabaseProjectRepository
-from app.models.study_model import StudyDataError
 from app.services.auth import AuthService
-from app.services.validation import ValidationError
 
 log = logging.getLogger(__name__)
 
@@ -46,26 +45,13 @@ def create_app(auth: AuthService = None, repository_class=SupabaseProjectReposit
     for controller in controllers:
         app.register_blueprint(controller.blueprint)
 
+    register_request_hooks(app, auth)
     register_error_handlers(app)
     return app
 
 
 def register_error_handlers(app: Flask) -> None:
     """Every failure is non-2xx JSON shaped as {message, errors?}."""
-
-    @app.errorhandler(ValidationError)
-    def handle_validation(err: ValidationError):
-        return jsonify({
-            "message": "Please fix the highlighted fields.",
-            "errors": err.errors,  
-        }), 400
-
-    @app.errorhandler(StudyDataError)
-    def handle_study_data(err: StudyDataError):
-        log.error("Study data unavailable: %s", err)
-        return jsonify({
-            "message": "The study database is unavailable right now. Please try again shortly."
-        }), 503
 
     @app.errorhandler(AppError)
     def handle_app_error(err: AppError):

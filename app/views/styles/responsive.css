@@ -18,8 +18,7 @@
   .sidebar-collapsed .brand__name,
   .sidebar-collapsed .new-project-btn span { display: inline; }
   .sidebar-collapsed .sidebar__section { display: flex; }
-  .sidebar-collapsed .project-list-wrap,
-  .sidebar-collapsed .sidebar__search { display: block; }
+  .sidebar-collapsed .project-list-wrap { display: block; }
   .sidebar-collapsed .new-project-btn { justify-content: flex-start; padding: 0 14px; }
   .sidebar [data-sidebar-toggle] { display: none; }
 
@@ -33,11 +32,9 @@
 
   .main { align-items: flex-start; padding: 8px 16px 40px; }
   .panel { padding: 22px 18px; gap: 18px; border-radius: 16px; }
-  .panel__title { font-size: 20px; }
   .field__meta { flex-direction: column; gap: 4px; }
   .form-actions { flex-direction: column-reverse; }
   .form-actions .btn { width: 100%; min-height: 46px; }
-  .project-detail__head { flex-direction: column; }
   .project-link { padding: 12px 10px; }
   .tag__remove { width: 28px; height: 28px; }
 

@@ -1,7 +1,7 @@
 """Validates the input, scores it against the studies and shapes the results.
 
-to_percent, similarity_label and shape_match are pure functions.
-MatchService is stateful: it keeps the index cache.
+shape_match is a pure function. MatchService is stateful: it keeps the index cache.
+The scoring helpers (to_percent, similarity_label, missing_terms) live in scoring.py.
 """
 import threading
 import time
@@ -10,36 +10,10 @@ from typing import Optional
 
 from app.config import Settings, get_settings
 from app.models.study_model import StudyModel
+from app.services.scoring import MAX_SHARED_WORDS, missing_terms, similarity_label, to_percent
 from app.services.tfidf import Scored, StudyIndex
-from app.services.tokenizer import build_display_words, build_token_list, tokenize_pairs
+from app.services.tokenizer import build_display_words, build_token_list
 from app.services.validation import validate_input
-
-MAX_SHARED_WORDS = 8
-
-
-def to_percent(score: float) -> float:
-    """Keep the score between 0 and 100 with one decimal."""
-    return round(max(0.0, min(100.0, score)), 1)
-
-
-def similarity_label(score: float, settings: Settings) -> str:
-    if score >= settings.high_score:
-        return "High similarity"
-    if score >= settings.medium_score:
-        return "Medium similarity"
-    return "Low similarity"
-
-
-def missing_terms(study, keywords) -> list:
-    """Words from the project's keywords that never appear in the study (stemmed, so 'sensors' = 'sensor')."""
-    study_stems = set(build_token_list(study.title, study.abstract, study.keywords, 1))
-    seen, words = set(), []
-    for stem, word in tokenize_pairs(" ".join(keywords or [])):
-        if stem not in study_stems and stem not in seen:
-            seen.add(stem)
-            words.append(word)
-    return words[:MAX_SHARED_WORDS]
-
 
 def shape_match(result: Scored, display: dict, keywords: list, settings: Settings) -> dict:
     """One Scored result as the dict the rest of the backend works with."""
@@ -98,7 +72,9 @@ class MatchService:
         results = self.get_index().compare(tokens, self.settings.min_score, limit)
         return list(map(partial(shape_match, display=display, keywords=data["keywords"], settings=self.settings), results))
 
+
 _default_service: Optional[MatchService] = None
+
 
 def find_matches(title, abstract, keywords, limit: Optional[int] = None) -> list:
     """Entry point for the match route. Uses one shared MatchService."""

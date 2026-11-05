@@ -2,18 +2,8 @@
 
 Every view has the same render() method, so a controller can use any of them the same way.
 """
-from abc import ABC, abstractmethod
-
 from app.config import Settings
-
-
-class JsonView(ABC):
-    @abstractmethod
-    def render(self, item) -> dict:
-        """One item as JSON-ready data."""
-
-    def render_all(self, items) -> list:
-        return [self.render(item) for item in items]
+from app.serializers.base import JsonView
 
 
 class StudyMatchView(JsonView):
@@ -90,12 +80,3 @@ class ProjectView(JsonView):
             },
             "studies": self.match_view.render_all(project.matches if matches is None else matches),
         }
-
-
-
-
-class UserView(JsonView):
-    """The signed-in user, as the account menu needs it. Never includes the token."""
-
-    def render(self, user) -> dict:
-        return {"id": user.id, "email": user.email, "name": user.name}

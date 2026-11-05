@@ -10,8 +10,8 @@ from typing import Optional
 from app.config import Settings
 from app.errors import NotFoundError
 from app.models.study_model import COLUMNS as STUDY_COLUMNS, Study
-from app.services.matcher import missing_terms, similarity_label
-from app.services.supabase_client import SupabaseClient
+from app.models.supabase_client import SupabaseClient
+from app.services.scoring import missing_terms, similarity_label
 
 PROJECT_COLUMNS = "id,user_id,title,abstract,keywords,created_at"
 MATCH_COLUMNS = f"study_id,score,shared_terms,relation,difference,studies({STUDY_COLUMNS})"
@@ -110,13 +110,13 @@ class ProjectRepository(ABC):
     def save_label(self, project: Project, match: ProjectMatch) -> None:
         """Saves a match's relation and difference note."""
 
+    @abstractmethod
     def update_project(self, project: Project, title: str, abstract: str, keywords: list, matches: list) -> Project:
         """Replaces a project's text and its matches."""
-        raise NotImplementedError
 
+    @abstractmethod
     def delete_project(self, project: Project) -> None:
         """Deletes a project; its matches go with it."""
-        raise NotImplementedError
 
 
 class SupabaseProjectRepository(SupabaseClient, ProjectRepository):

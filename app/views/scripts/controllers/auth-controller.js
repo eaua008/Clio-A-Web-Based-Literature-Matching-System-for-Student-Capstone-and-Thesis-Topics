@@ -63,8 +63,6 @@ class AuthController {
       /* Reload so nothing from this user (projects, results, tokens) stays in memory on a shared computer. */
       window.location.reload();
     });
-    /* When a real backend is connected the "nothing is sent or saved" notes no longer apply. */
-    if (this.api.connected) this.modal.querySelectorAll(".auth-note").forEach((n) => { n.hidden = true; });
   }
 
   /* Swaps the Login / Sign Up buttons for the account menu. Text is set with textContent, never as HTML. */

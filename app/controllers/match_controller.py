@@ -4,7 +4,7 @@ from flask import jsonify
 from app.controllers.base_controller import BaseController
 from app.services.auth import AuthService
 from app.services.matcher import find_matches
-from app.views.match_view import StudyMatchView
+from app.serializers.match_view import StudyMatchView
 
 
 class MatchController(BaseController):

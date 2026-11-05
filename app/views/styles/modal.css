@@ -65,12 +65,6 @@
 }
 .auth-switch__link:hover { color: #F3D9FF; }
 
-.auth-note {
-  display: flex; gap: 8px; align-items: flex-start; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, .25);
-  font-size: 11.5px; color: #EDE0FF;
-}
-.auth-note svg.lucide { width: 14px; height: 14px; color: #fff; margin-top: 1px; }
-
 /* Tablet / mobile: stack the panels, keep the brand compact */
 @media (max-width: 768px) {
   .modal .auth-dialog { grid-template-columns: 1fr; max-width: 480px; padding: 0; border-radius: 18px; }

@@ -2,7 +2,7 @@
    Used when the page is served without Flask (GitHub Pages, Live Preview): ClioApi switches to it on
    page load when {apiBase}/auth/me/ doesn't answer.
 
-   - Sign-in: Supabase Auth REST with the public anon/publishable key from core/config.js.
+   - Sign-in: Supabase Auth REST with the public anon/publishable key from scripts/config.js.
    - Data: PostgREST as the signed-in user, so row level security allows only their own rows.
    - Matching: the TF-IDF function match_studies() in the database (database/03_functions.sql).
    The session is kept in sessionStorage, so a refresh keeps the user signed in and closing the tab
@@ -169,7 +169,7 @@ class SupabaseDirect {
     return words.filter((w) => !new RegExp(`\\b${w.replace(/(es|s)$/, "")}`).test(text)).slice(0, 8);
   }
 
-  /* One study in the shape app/views/match_view.py StudyMatchView sends. */
+  /* One study in the shape app/serializers/match_view.py StudyMatchView sends. */
   shape(s, keywords, saved = {}) {
     const score = Number(s.score);
     return {

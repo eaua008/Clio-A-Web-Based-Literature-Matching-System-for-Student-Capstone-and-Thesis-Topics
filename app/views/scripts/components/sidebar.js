@@ -23,12 +23,6 @@ class Sidebar {
           <span>New Project</span><i data-lucide="circle-plus"></i>
         </a>
 
-        <div class="sidebar__search" id="project-search" hidden>
-          <label for="project-search-input" class="visually-hidden">Search projects by title or keyword</label>
-          <i data-lucide="search" class="sidebar__search-icon"></i>
-          <input id="project-search-input" type="search" placeholder="Search title or keyword…" autocomplete="off">
-        </div>
-
         <div class="sidebar__section">
           <h2 class="sidebar__heading">Projects</h2>
           <span class="sidebar__count" id="project-count"></span>

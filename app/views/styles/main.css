@@ -71,8 +71,6 @@ svg.lucide { width: 18px; height: 18px; flex-shrink: 0; stroke-width: 2; }
 .btn--primary:hover:not(:disabled) { background: var(--primary-hover); box-shadow: 0 0 26px rgba(176, 0, 255, .5); }
 .btn--ghost { background: transparent; border-color: var(--border); }
 .btn--ghost:hover { border-color: var(--neon); background: rgba(128, 0, 255, .1); }
-.btn--outline { background: var(--input); border-color: var(--border-strong); }
-.btn--outline:hover { border-color: var(--neon); }
 .btn--danger { background: transparent; border-color: rgba(255, 77, 122, .5); color: var(--danger-text); }
 .btn--danger:hover { background: rgba(255, 77, 122, .12); border-color: var(--danger); }
 .btn--small { min-height: 34px; padding: 0 12px; font-size: 13px; }

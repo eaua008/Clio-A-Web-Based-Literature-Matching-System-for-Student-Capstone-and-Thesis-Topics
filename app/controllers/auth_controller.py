@@ -5,15 +5,12 @@ POST /api/auth/signup/   { name, email, password }  -> { user } or { needsConfir
 POST /api/auth/logout/                              -> { ok: true }
 GET  /api/auth/me/                                  -> { user } (user is null when signed out)
 """
-from flask import g, jsonify, request
+from flask import g, jsonify
 
 from app.controllers.base_controller import BaseController
-from app.errors import ForbiddenError, FormError
+from app.errors import FormError
 from app.services.auth import AuthService, User
-from app.views.match_view import UserView
-
-SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
-REQUEST_HEADER = "X-Clio-Request"
+from app.serializers.user_view import UserView
 
 
 class AuthController(BaseController):
@@ -24,8 +21,6 @@ class AuthController(BaseController):
         self.auth = auth
         self.view = UserView()
         super().__init__()
-        self.blueprint.before_app_request(self.block_cross_site_writes)
-        self.blueprint.after_app_request(self.update_cookies)
 
     def routes(self) -> list:
         return [
@@ -34,24 +29,6 @@ class AuthController(BaseController):
             ("/logout/", self.logout, ["POST"]),
             ("/me/", self.me, ["GET"]),
         ]
-
-    # ---- run around every request ----
-
-    @staticmethod
-    def block_cross_site_writes():
-        """Cookies are sent automatically, so a write to the API must also carry a header that
-        only this site's own scripts can add. Another website's form can't add it."""
-        if request.path.startswith("/api/") and request.method not in SAFE_METHODS \
-                and request.headers.get(REQUEST_HEADER) != "1":
-            raise ForbiddenError()
-
-    def update_cookies(self, response):
-        """Saves a refreshed session, or clears a dead one, after any request."""
-        if "clio_new_session" in g:
-            self.auth.cookies.write(response, g.clio_new_session)
-        elif g.get("clio_clear_session"):
-            self.auth.cookies.clear(response)
-        return response
 
     # ---- routes ----
 

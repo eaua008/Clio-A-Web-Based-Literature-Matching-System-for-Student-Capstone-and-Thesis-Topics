@@ -5,14 +5,12 @@ from typing import Optional
 import requests
 
 from app.config import Settings
+from app.errors import StudyDataError
+from app.models.supabase_client import SupabaseClient
 
 COLUMNS = ("id,title,abstract,keywords,authors,year,source_type,source_name,url,"
            "study_type,cited_by,access,setting,is_sample")
-PAGE_SIZE = 1000 
-
-
-class StudyDataError(RuntimeError):
-    """The studies could not be read from the database."""
+PAGE_SIZE = 1000
 
 
 @dataclass
@@ -52,22 +50,19 @@ class Study:
         )
 
 
-class StudyModel:
+class StudyModel(SupabaseClient):
     def __init__(self, settings: Settings, session: Optional[requests.Session] = None):
-        settings.require_supabase()
-        self.url = f"{settings.supabase_url}/rest/v1/studies"
-        self.session = session or requests.Session()
-        self.session.headers.update({
-            "apikey": settings.supabase_key,
-            "Authorization": f"Bearer {settings.supabase_key}",
-        })
+        super().__init__(settings, None, session)
+
+    def error_for(self, response: Optional[requests.Response]) -> Exception:
+        if response is None:
+            return StudyDataError("Could not read studies: no connection")
+        return StudyDataError(f"Could not read studies: HTTP {response.status_code}")
 
     def _get(self, params: dict) -> list:
         try:
-            response = self.session.get(self.url, params=params, timeout=15)
-            response.raise_for_status()
-            return response.json()
-        except (requests.RequestException, ValueError) as error:
+            return self._request("GET", "studies", params, returning=False)
+        except ValueError as error:
             raise StudyDataError(f"Could not read studies: {error}") from error
 
     def get_all_studies(self) -> list:

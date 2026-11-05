@@ -18,7 +18,7 @@ from app.services.auth import AuthService
 from app.services.matcher import find_matches
 from app.services.rules import AccessPolicy, LabelPolicy
 from app.services.validation import validate_input
-from app.views.match_view import ProjectSummaryView, ProjectView, SavedMatchView, StudyMatchView
+from app.serializers.match_view import ProjectSummaryView, ProjectView, SavedMatchView, StudyMatchView
 
 
 class ProjectController(BaseController):
@@ -66,7 +66,7 @@ class ProjectController(BaseController):
         return jsonify({"projects": ProjectSummaryView().render_all(projects)})
 
     def create(self):
-        user, repository = self._session()
+        _, repository = self._session()
         body = self.json_body()
         data = validate_input(body.get("title"), body.get("abstract"), body.get("keywords"))
         results = self.find_matches(data["title"], data["abstract"], data["keywords"], body.get("limit"))

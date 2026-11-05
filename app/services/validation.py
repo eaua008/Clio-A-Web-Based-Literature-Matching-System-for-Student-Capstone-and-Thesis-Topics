@@ -1,19 +1,11 @@
 """Input rules. Each check returns an error message, or None if the value is fine."""
+from app.errors import ValidationError
 
 MIN_WORDS = 50
 MAX_TITLE = 200
 MAX_ABSTRACT = 10000
 MAX_KEYWORDS = 30
 MAX_KEYWORD_LENGTH = 50
-
-
-class ValidationError(ValueError):
-    """Bad input. `errors` maps a field name to its message."""
-
-    def __init__(self, errors: dict):
-        super().__init__("Please fix the highlighted fields.")
-        self.message = "Please fix the highlighted fields."
-        self.errors = errors
 
 
 def count_words(text: str) -> int:

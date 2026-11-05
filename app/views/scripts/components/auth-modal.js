@@ -1,4 +1,4 @@
-/* Clio — Sign in / sign up modal. Frontend only: no authentication backend is connected yet. */
+/* Clio — Sign in / sign up modal. */
 class AuthModal {
   brand(heading, text) {
     return `
@@ -52,7 +52,6 @@ class AuthModal {
               <button type="submit" class="btn btn--primary btn--block"><span>Sign In</span></button>
             </form>
             <p class="auth-switch">Don't have an account? <button type="button" class="auth-switch__link" data-goto-view="signup">Sign up</button></p>
-            <p class="auth-note"><i data-lucide="info"></i>Sign-in isn't connected yet, so nothing you enter here is sent or saved.</p>
           </section>
         </div>
 
@@ -72,7 +71,6 @@ class AuthModal {
               <button type="submit" class="btn btn--primary btn--block"><span>Create Account</span></button>
             </form>
             <p class="auth-switch">Already have an account? <button type="button" class="auth-switch__link" data-goto-view="login">Sign in</button></p>
-            <p class="auth-note"><i data-lucide="info"></i>Account creation isn't connected yet, so nothing you enter here is sent or saved.</p>
           </section>
         </div>
       </div>

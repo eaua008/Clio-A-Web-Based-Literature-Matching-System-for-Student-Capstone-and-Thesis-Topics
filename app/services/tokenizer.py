@@ -7,12 +7,10 @@ outside the function is read or changed. The tokenizer is a pipeline of small st
 Studies and the student's input run through the same pipeline, so they can be compared.
 """
 import re
-from functools import lru_cache, partial
+from functools import lru_cache, partial, reduce
 from operator import itemgetter
 
 from nltk.stem import PorterStemmer
-
-from app.services.functional import pipe
 
 MIN_LENGTH = 3
 
@@ -28,6 +26,13 @@ may might must shall via etc eg ie upon within without across among per
 
 _NON_WORD = re.compile(r"[^a-z0-9]+")
 _stemmer = PorterStemmer()
+
+
+def pipe(*steps):
+    """pipe(f, g, h)(x) is h(g(f(x)))."""
+    def run(value):
+        return reduce(lambda result, step: step(result), steps, value)
+    return run
 
 
 def clean_text(text: str) -> str:
@@ -47,6 +52,7 @@ def remove_stopwords(words: list) -> list:
     """Drop common words ('the', 'and') and very short words."""
     return list(filter(is_keepable, words))
 
+
 @lru_cache(maxsize=None)
 def stem_word(word: str) -> str:
     """'sensors' -> 'sensor'. Cached because the result never changes."""
@@ -60,7 +66,6 @@ def with_stem(word: str) -> tuple:
 
 tokenize_pairs = pipe(split_words, remove_stopwords, partial(map, with_stem), list)
 tokenize = pipe(tokenize_pairs, partial(map, itemgetter(0)), list)
-
 
 
 def build_token_list(title: str, abstract: str, keywords, keyword_boost: int) -> list:

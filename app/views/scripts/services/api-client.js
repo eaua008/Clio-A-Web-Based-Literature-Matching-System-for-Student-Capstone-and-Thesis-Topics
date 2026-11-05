@@ -1,5 +1,5 @@
 /* Clio — the only place the frontend talks to the Python backend.
-   CLIO_CONFIG.apiBase (core/config.js) points at the Flask backend. If it is empty, every call
+   CLIO_CONFIG.apiBase (scripts/config.js) points at the Flask backend. If it is empty, every call
    resolves to { ok: false, notConnected: true } and the page shows an error.
 
    Sign-in goes through Flask too. Flask keeps the session in HttpOnly cookies, so page scripts never
@@ -77,7 +77,7 @@ class ApiClient {
 
 /* Clio — backend operations used by the controllers.
    Flask first. When the page is served without Flask (GitHub Pages, Live Preview), restore() finds
-   that {apiBase}/auth/me/ doesn't answer and every call goes to SupabaseDirect (services/supabase-direct.js)
+   that {apiBase}/auth/me/ doesn't answer and every call goes to SupabaseDirect (scripts/services/supabase-direct.js)
    instead, which talks to Supabase straight from the browser. */
 class ClioApi {
   constructor(client = new ApiClient(), fallback = typeof SupabaseDirect === "function" ? new SupabaseDirect() : null) {

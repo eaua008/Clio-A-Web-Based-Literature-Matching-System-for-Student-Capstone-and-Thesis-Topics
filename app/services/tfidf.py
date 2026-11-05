@@ -8,7 +8,7 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass
 from typing import Optional
 
-from app.config import get_settings  # Adjust to app.core.config if needed
+from app.config import get_settings
 from app.models.study_model import Study
 from app.services.tokenizer import build_token_list
 
@@ -54,7 +54,6 @@ class Scored:
 
 class StudyIndex:
     def __init__(self, studies: list, keyword_boost: Optional[int] = None):
-        # Fall back to config setting if keyword_boost is omitted
         if keyword_boost is None:
             keyword_boost = get_settings().keyword_boost
 
@@ -78,31 +77,31 @@ class StudyIndex:
         return vector
 
     def compare(self, tokens: list, min_score: Optional[float] = None, limit: Optional[int] = None) -> list:
-            """Score every study that shares at least one word with the input, best first."""
-            if min_score is None:
-                min_score = get_settings().min_score
+        """Score every study that shares at least one word with the input, best first."""
+        if min_score is None:
+            min_score = get_settings().min_score
 
-            query = self.query_vector(tokens)
-            query_norm = math.sqrt(sum(weight * weight for weight in query.values()))
-            if query_norm == 0:
-                return []
+        query = self.query_vector(tokens)
+        query_norm = math.sqrt(sum(weight * weight for weight in query.values()))
+        if query_norm == 0:
+            return []
 
-            dots = defaultdict(float)
-            parts = defaultdict(list)
-            for term, query_weight in query.items():
-                for position, study_weight in self.postings.get(term, ()):
-                    contribution = query_weight * study_weight
-                    dots[position] += contribution
-                    parts[position].append((term, contribution))
+        dots = defaultdict(float)
+        parts = defaultdict(list)
+        for term, query_weight in query.items():
+            for position, study_weight in self.postings.get(term, ()):
+                contribution = query_weight * study_weight
+                dots[position] += contribution
+                parts[position].append((term, contribution))
 
-            results = []
-            for position, dot in dots.items():
-                if self.norms[position] == 0:
-                    continue
-                score = 100.0 * dot / (self.norms[position] * query_norm)
-                if score > 0 and score >= min_score:
-                    shared = sorted(parts[position], key=lambda part: -part[1])
-                    results.append(Scored(self.studies[position], score, shared))
+        results = []
+        for position, dot in dots.items():
+            if self.norms[position] == 0:
+                continue
+            score = 100.0 * dot / (self.norms[position] * query_norm)
+            if score > 0 and score >= min_score:
+                shared = sorted(parts[position], key=lambda part: -part[1])
+                results.append(Scored(self.studies[position], score, shared))
 
-            results.sort(key=lambda r: (-round(r.score, 1), -(r.study.year or 0), r.study.id))
-            return results[:limit] if limit else results
+        results.sort(key=lambda r: (-round(r.score, 1), -(r.study.year or 0), r.study.id))
+        return results[:limit] if limit else results

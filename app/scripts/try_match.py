@@ -5,12 +5,8 @@ Reads the studies from Supabase (needs a .env file with SUPABASE_URL and SUPABAS
 
 import argparse
 import sys
-from pathlib import Path
 
-# Make the backend folder importable when this file is run directly.
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-from app.services.validation import ValidationError  # noqa: E402
+from app.errors import ValidationError
 
 SAMPLE = {
     "title": "Smart irrigation controller for small vegetable farms",
