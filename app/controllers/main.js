@@ -10,7 +10,6 @@ const projectResults = new ProjectResults(api);
 projectResults.mount("project-results-root");
 new AuthModal().mount("auth-modal-root");
 new SearchDialog().mount("search-dialog-root");
-new Toast().mount("toast-root-slot");
 
 const projectNav = new ProjectNav(projectResults, api);
 const enterButton = new EnterButton(projectResults, projectNav, api);

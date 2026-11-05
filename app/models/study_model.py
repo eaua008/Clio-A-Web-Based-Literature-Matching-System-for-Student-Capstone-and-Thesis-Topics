@@ -79,7 +79,3 @@ class StudyModel:
             if len(rows) < PAGE_SIZE:
                 return studies
             offset += PAGE_SIZE
-
-    def get_study_by_id(self, study_id: str) -> Optional[Study]:
-        rows = self._get({"select": COLUMNS, "id": f"eq.{study_id}", "limit": 1})
-        return Study.from_row(rows[0]) if rows else None

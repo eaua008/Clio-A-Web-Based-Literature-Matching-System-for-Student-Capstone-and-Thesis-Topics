@@ -24,7 +24,6 @@ class Topbar {
               <div class="profile__meta">
                 <strong data-user-name></strong>
                 <span data-user-email></span>
-                <em class="demo-badge">Demo session</em>
               </div>
               <button type="button" class="profile__item" role="menuitem" data-logout>
                 <i data-lucide="log-out"></i> Log out

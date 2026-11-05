@@ -1,6 +1,6 @@
 /* Clio — the only place the frontend talks to the Python backend.
    CLIO_CONFIG.apiBase (core/config.js) points at the Flask backend. If it is empty, every call
-   resolves to { ok: false, notConnected: true } and the page shows labelled sample studies.
+   resolves to { ok: false, notConnected: true } and the page shows an error.
 
    Sign-in goes through Flask too. Flask keeps the session in HttpOnly cookies, so page scripts never
    see a token and a page refresh keeps the user signed in. Every write sends the X-Clio-Request
@@ -138,8 +138,7 @@ class ClioApi {
     return this.user;
   }
 
-  /* Related studies for a project. Until matching is connected this returns clearly labelled
-     sample placeholders (isSample: true), never scores presented as real TF-IDF results. */
+  /* Related studies for a project, or { studies: [], error } when matching can't be reached. */
   async relatedStudies(project, savedId = null) {
     if (this.direct) return this.direct.relatedStudies(project, savedId);
     const body = { title: project.title, abstract: project.abstract, keywords: project.keywords, limit: 30 };
@@ -147,27 +146,8 @@ class ClioApi {
     const result = !this.signedIn ? await this.client.post("/matches/", body)
       : savedId ? await this.client.put(`/projects/${encodeURIComponent(savedId)}/`, body)
       : await this.client.post("/projects/", body);
-    if (result.ok) return { isSample: false, studies: result.data.studies || [], projectId: result.data.project ? result.data.project.id : null };
-    if (!result.notConnected) return { isSample: false, studies: [], error: result.message, errors: result.errors || {} };
-    return {
-      isSample: true,
-      studies: [
-        ["Soil-Moisture Irrigation Controller", 2.1],
-        ["Sensor-Based Greenhouse Water Management", 1.9],
-        ["Solar-Powered Pump for Small Farms", 1.6],
-        ["Wi-Fi Crop Monitoring Dashboard", 1.2],
-        ["Low-Cost Weather Station for Agriculture", 0.6],
-      ].map(([name, score], i) => ({
-        title: `Sample Study ${i + 1}: ${name}`,
-        score,
-        source: "Local School Theses",
-        kind: "Sample",
-        year: 2022,
-        authors: "Sample author",
-        abstract: "Sample placeholder text. A real abstract from the matched study will appear here once matching is connected.",
-        details: { studyType: "Not stated", citedBy: "—", access: "Not stated", setting: "Not stated" },
-      })),
-    };
+    if (result.ok) return { studies: result.data.studies || [], projectId: result.data.project ? result.data.project.id : null };
+    return { studies: [], error: result.notConnected ? "No matching service is configured, so related studies can't be loaded." : result.message, errors: result.errors || {} };
   }
 
   /* The signed-in user's saved projects: [{ id, title, createdAt }]. */
@@ -182,7 +162,7 @@ class ClioApi {
     if (this.direct) return this.direct.loadProject(id);
     const result = await this.client.get(`/projects/${encodeURIComponent(id)}/`);
     if (!result.ok) return { error: result.message };
-    return { project: result.data.project, match: { isSample: false, studies: result.data.studies || [], projectId: id } };
+    return { project: result.data.project, match: { studies: result.data.studies || [], projectId: id } };
   }
 
   /* Deletes a saved project and its matches. Returns { ok } or { ok: false, message }. */

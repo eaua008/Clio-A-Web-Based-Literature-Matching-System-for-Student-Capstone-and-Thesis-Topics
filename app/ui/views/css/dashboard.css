@@ -119,7 +119,6 @@
 }
 .profile__meta { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px 10px; border-bottom: 1px solid var(--border); margin-bottom: 6px; font-size: 13px; }
 .profile__meta span { color: var(--text-2); overflow: hidden; text-overflow: ellipsis; }
-.demo-badge { align-self: flex-start; margin-top: 6px; padding: 1px 8px; border-radius: 999px; font-style: normal; font-size: 11px; color: var(--neon); border: 1px solid var(--border-strong); }
 .profile__item {
   display: flex; width: 100%; align-items: center; gap: 9px; padding: 9px 10px;
   background: none; border: 0; border-radius: 7px; font-size: 14px; text-align: left;
@@ -141,10 +140,7 @@
 .field__meta { display: flex; justify-content: center; gap: 12px; align-items: flex-start; font-size: 11.5px; font-weight: 600; }
 .word-hint { display: flex; gap: 6px; align-items: flex-start; color: #F1E6FF; }
 .word-hint svg.lucide { width: 14px; height: 14px; margin-top: 2px; }
-.word-hint.is-warning { color: var(--warning); }
 .word-count { flex-shrink: 0; color: var(--text-2); font-variant-numeric: tabular-nums; }
-.word-count.is-low { color: var(--warning); }
-.word-count.is-ok { color: var(--success); }
 
 .keyword-box {
   display: flex; flex-direction: column; gap: 10px; padding: 10px;
@@ -218,7 +214,6 @@
 .result__chip--line { background: transparent; color: #E8D5FF; border: 1px solid #C9A3FF; }
 .result__dot { font-weight: 700; }
 .result__dot::before { content: "•"; margin-right: 6px; }
-.result__badge { margin-left: auto; padding: 3px 10px; border: 1px solid #C9A3FF; border-radius: 6px; font-size: 11px; color: #E8D5FF; }
 .result__label { margin: 0 0 6px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: #C9A3FF; }
 .result__abstract { margin: 0; font-size: 14px; line-height: 1.55; overflow-wrap: anywhere; }
 .result mark { padding: 0 4px; border-radius: 4px; background: #FFD966; color: #2A1A00; }

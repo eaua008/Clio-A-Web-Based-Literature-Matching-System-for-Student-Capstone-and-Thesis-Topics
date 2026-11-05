@@ -1,9 +1,8 @@
-/* Clio — Related studies results view. Shows sample placeholders until TF-IDF matching is connected (see ClioApi). */
+/* Clio — Related studies results view. */
 class ProjectResults {
   constructor(api = null) {
     this.api = api;
     this.current = null;
-    this.sampleNote = "Sample data — similarity matching is not implemented yet; scores are placeholders, not real TF-IDF results.";
     this.reduceMotion = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : { matches: false };
   }
 
@@ -12,7 +11,7 @@ class ProjectResults {
       <!-- Related studies results -->
       <section class="results-wrap" id="results-view" aria-label="Related studies" hidden>
         <div class="results">
-          <p class="results__note">${this.sampleNote}</p>
+          <p class="results__note"></p>
           <ol class="results__list" id="results-list"></ol>
         </div>
       </section>
@@ -90,7 +89,7 @@ class ProjectResults {
     return text.split(pattern).map((part, n) => (n % 2 ? `<mark>${this.escape(part)}</mark>` : this.escape(part))).join("");
   }
 
-  body(study, project, isSample, i) {
+  body(study, project, i) {
     const val = (v) => (v === undefined || v === null || v === "" ? "—" : this.escape(Array.isArray(v) ? v.join(", ") : v));
     const abstract = String(study.abstract || study.summary || "");
     /* Both lists are computed by the backend (stemmed); the page only draws them. */
@@ -98,17 +97,16 @@ class ProjectResults {
     const missing = Array.isArray(study.missingTerms) ? study.missingTerms : [];
     const details = study.details || {};
     const chips = (list, cls) => list.map((t) => `<span class="${cls}">${this.escape(t)}</span>`).join("");
-    const citation = !isSample && study.title ? [study.authors, study.year ? `(${study.year})` : "", `${study.title}.`, study.source ? `${study.source}.` : ""].filter(Boolean).join(" ") : "";
+    const citation = study.title ? [study.authors, study.year ? `(${study.year})` : "", `${study.title}.`, study.source ? `${study.source}.` : ""].filter(Boolean).join(" ") : "";
     const url = /^https?:\/\//i.test(study.url || "") ? study.url : "";
-    const soon = ' disabled title="Available once real matching is connected"';
+    const soon = ' disabled title="Not available for this study"';
     return `
-      <div class="result__flag"><span class="result__flag-label">Why flagged (shared terms):</span>${shared.length ? chips(shared, "result__term") : `<span class="result__none">${isSample ? "Not computed yet" : "None"}</span>`}</div>
+      <div class="result__flag"><span class="result__flag-label">Why flagged (shared terms):</span>${shared.length ? chips(shared, "result__term") : `<span class="result__none">None</span>`}</div>
       <div class="result__meta">
         ${study.source ? `<span class="result__chip">${this.escape(study.source)}</span>` : ""}
         ${study.kind ? `<span class="result__chip result__chip--line">${this.escape(study.kind)}</span>` : ""}
         ${study.year ? `<span class="result__dot">${this.escape(study.year)}</span>` : ""}
         ${study.authors ? `<span class="result__dot">${this.escape(study.authors)}</span>` : ""}
-        ${isSample ? '<span class="result__badge">Sample placeholder — not a real study</span>' : ""}
       </div>
       <div>
         <p class="result__label">Abstract</p>
@@ -138,7 +136,7 @@ class ProjectResults {
       </div>
       <div>
         <label class="result__diff-label" for="result-diff-${i}">How My Work Differs (Student Defense Argument):</label>
-        <textarea class="result__diff" id="result-diff-${i}" rows="3" placeholder="e.g. While this paper uses high-pressure pneumatic solenoids, our project develops a low-power micro-stepper flipper gate that runs on an 18W solar battery for...">${study.difference && !isSample ? this.escape(study.difference) : ""}</textarea>
+        <textarea class="result__diff" id="result-diff-${i}" rows="3" placeholder="e.g. While this paper uses high-pressure pneumatic solenoids, our project develops a low-power micro-stepper flipper gate that runs on an 18W solar battery for...">${study.difference ? this.escape(study.difference) : ""}</textarea>
         <p class="result__hint" data-label-status aria-live="polite"></p>
       </div>
       <div class="result__actions">
@@ -151,10 +149,10 @@ class ProjectResults {
 
   /* Shows a spinner in the results area while studies are fetched, so the wait doesn't look like a freeze. */
   loading(project, message) {
-    this.show(project, { isSample: false, studies: [], loading: message });
+    this.show(project, { studies: [], loading: message });
   }
 
-  /* match: { isSample, studies, error? } from ClioApi.relatedStudies(), or { loading } from loading(). */
+  /* match: { studies, error? } from ClioApi.relatedStudies(), or { loading } from loading(). */
   show(project, match) {
     if (!match.loading) this.current = { project, match };
     this.view.setAttribute("aria-busy", String(Boolean(match.loading)));
@@ -163,18 +161,18 @@ class ProjectResults {
       this.list.innerHTML = `<li class="results__loading" role="status"><span class="results__spinner" aria-hidden="true"></span><span></span></li>`;
       this.list.querySelector(".results__loading span:last-child").textContent = match.loading;
     } else {
-    this.note.textContent = match.error || (match.isSample ? this.sampleNote : "")
+    this.note.textContent = match.error
       || (match.studies.length ? "" : "No related studies were found for this project. Try more specific keywords.");
     this.list.innerHTML = match.studies.map((s, i) => `
       <li class="result" data-index="${i}">
         <button type="button" class="result__head" aria-expanded="false" aria-controls="result-body-${i}">
           <span class="result__title">#${i + 1} ${this.escape(s.title)}</span>
           <span class="result__sim">${this.similarity(s)}</span>
-          <span class="result__score"${match.isSample ? ' title="Placeholder score, not a real TF-IDF result"' : ""}>${this.escape(s.score)}% TF-IDF Score</span>
+          <span class="result__score">${this.escape(s.score)}% TF-IDF Score</span>
           <i data-lucide="chevron-down"></i>
         </button>
         <div class="result__body" id="result-body-${i}" hidden>
-          ${this.body(s, project, match.isSample, i)}
+          ${this.body(s, project, i)}
         </div>
       </li>
     `).join("");

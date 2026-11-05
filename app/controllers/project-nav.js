@@ -113,7 +113,7 @@ class ProjectNav {
       this.select(project.id);
       this.results.loading(project, "Loading saved results…");
       const loaded = await this.api.loadProject(id);
-      if (loaded.error) return this.results.show(project, { isSample: false, studies: [], error: loaded.error });
+      if (loaded.error) return this.results.show(project, { studies: [], error: loaded.error });
       Object.assign(project, loaded.project, { match: loaded.match });
     }
     this.form.fill(project);

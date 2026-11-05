@@ -41,7 +41,6 @@
 .auth-main .field__error { color: #FFD1DE; }
 .auth-main .field--invalid input { border-color: var(--danger); }
 .auth-label-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-.auth-label-row .link-btn { padding: 0; font-size: 12.5px; color: #fff; }
 .auth-input { position: relative; }
 .auth-input:has(.auth-eye) input { padding-right: 46px; }
 .auth-eye {
@@ -71,17 +70,6 @@
   font-size: 11.5px; color: #EDE0FF;
 }
 .auth-note svg.lucide { width: 14px; height: 14px; color: #fff; margin-top: 1px; }
-
-.social-btn {
-  display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 44px;
-  background: #07040D; border: 1px solid #2E1145; border-radius: var(--radius-sm);
-  font-weight: 600; font-size: 14px; transition: border-color .15s, background .15s;
-}
-.social-btn:hover { border-color: var(--neon); background: #1E0B33; }
-.social-btn__google { width: auto; height: 20px; object-fit: contain; }
-
-.divider { display: flex; align-items: center; gap: 12px; color: #EDE0FF; font-size: 12px; letter-spacing: .12em; }
-.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: rgba(255, 255, 255, .25); }
 
 /* Tablet / mobile: stack the panels, keep the brand compact */
 @media (max-width: 768px) {

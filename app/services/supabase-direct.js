@@ -11,7 +11,7 @@ class SupabaseDirect {
   static RELATIONS = ["Duplicate", "Similar", "Related background", "Not relevant"];
   static MAX_NOTE = 5000;
   static STORE = "clio.session";
-  static STUDY = "id,title,source_type,source_name,year,authors,abstract,keywords,url,study_type,cited_by,access,setting,is_sample";
+  static STUDY = "id,title,source_type,source_name,year,authors,abstract,keywords,url,study_type,cited_by,access,setting";
   static KINDS = { paper: "Paper", patent: "Patent", github: "GitHub project", local_thesis: "Local thesis" };
 
   constructor(config = window.CLIO_CONFIG || {}) {
@@ -187,7 +187,6 @@ class SupabaseDirect {
       url: s.url || "",
       relation: saved.relation || null,
       difference: saved.difference || "",
-      isSample: Boolean(s.is_sample),
       details: { studyType: s.study_type || "Not stated", citedBy: s.cited_by == null ? "—" : s.cited_by, access: s.access || "Not stated", setting: s.setting || "Not stated" },
     };
   }
@@ -196,16 +195,16 @@ class SupabaseDirect {
      or, with savedId, replace that project's text and matches and keep its labels (like PUT /api/projects/<id>/). */
   async relatedStudies(project, savedId = null) {
     const { data, errors } = this.validate(project);
-    if (Object.keys(errors).length) return { isSample: false, studies: [], error: "Please fix the highlighted fields.", errors };
+    if (Object.keys(errors).length) return { studies: [], error: "Please fix the highlighted fields.", errors };
     const body = { p_title: data.title, p_abstract: data.abstract, p_keywords: data.keywords, p_limit: 30 };
     const matched = this.signedIn ? await this.rest("POST", "/rpc/match_studies", body) : await this.call("POST", "/rest/v1/rpc/match_studies", body);
-    if (!matched.ok) return { isSample: false, studies: [], ...this.failure(matched, "Couldn't find related studies right now. Please try again.") };
+    if (!matched.ok) return { studies: [], ...this.failure(matched, "Couldn't find related studies right now. Please try again.") };
     const rows = Array.isArray(matched.data) ? matched.data : [];
     const studies = rows.map((r) => this.shape(r, data.keywords));
-    if (!this.signedIn) return { isSample: false, studies, projectId: null };
+    if (!this.signedIn) return { studies, projectId: null };
     if (savedId) return this.updateProject(savedId, data, rows, studies);
 
-    const unsaved = { isSample: false, studies, projectId: null, error: "Matched, but the project couldn't be saved to your account." };
+    const unsaved = { studies, projectId: null, error: "Matched, but the project couldn't be saved to your account." };
     const saved = await this.rest("POST", "/projects?select=id", data, "return=representation");
     const projectId = saved.ok && saved.data[0] ? saved.data[0].id : null;
     if (!projectId) return unsaved;
@@ -218,11 +217,11 @@ class SupabaseDirect {
       }
     }
     this.scores[projectId] = Object.fromEntries(rows.map((r) => [r.study_id, Number(r.score)]));
-    return { isSample: false, studies, projectId };
+    return { studies, projectId };
   }
 
   async updateProject(id, data, rows, studies) {
-    const failed = { isSample: false, studies, projectId: id, error: "Matched, but the project couldn't be updated in your account." };
+    const failed = { studies, projectId: id, error: "Matched, but the project couldn't be updated in your account." };
     const old = await this.rest("GET", `/project_matches?select=study_id,relation,difference&project_id=eq.${encodeURIComponent(id)}`);
     if (!old.ok) return failed;
     const labels = Object.fromEntries(old.data.map((m) => [m.study_id, m]));
@@ -237,7 +236,7 @@ class SupabaseDirect {
     if (links.length && !(await this.rest("POST", "/project_matches", links, "return=minimal")).ok) return failed;
     studies.forEach((s) => { const label = labels[s.studyId]; if (label) Object.assign(s, { relation: label.relation || null, difference: label.difference || "" }); });
     this.scores[id] = Object.fromEntries(rows.map((r) => [r.study_id, Number(r.score)]));
-    return { isSample: false, studies, projectId: id };
+    return { studies, projectId: id };
   }
 
   /* Row level security lets users delete only their own projects; their matches go with them (on delete cascade). */
@@ -263,7 +262,7 @@ class SupabaseDirect {
     const keywords = p.keywords || [];
     const studies = links.data.map((m) => this.shape({ ...(m.studies || { id: m.study_id }), score: m.score }, keywords, m));
     this.scores[id] = Object.fromEntries(links.data.map((m) => [m.study_id, Number(m.score)]));
-    return { project: { id: p.id, title: p.title, abstract: p.abstract, keywords, createdAt: p.created_at }, match: { isSample: false, studies, projectId: id } };
+    return { project: { id: p.id, title: p.title, abstract: p.abstract, keywords, createdAt: p.created_at }, match: { studies, projectId: id } };
   }
 
   /* Same rules as LabelPolicy in app/services/rules.py: errors block the save, warnings come back with it. */

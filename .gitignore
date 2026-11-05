@@ -13,10 +13,6 @@ tests/
 
 # Backups
 *.zip
-django-version-backup.zip
-
-# Local-only SQL (Image 2)
-database/tools/undo_clio_in_akeso.sql
 
 # Editor / tool folders
 .claude/

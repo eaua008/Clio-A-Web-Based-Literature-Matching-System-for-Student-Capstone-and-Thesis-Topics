@@ -49,7 +49,7 @@ class AuthModal {
               ${this.field("login-email", "Email address", "email", "email")}
               ${this.field("login-password", "Password", "password", "current-password")}
               <p class="auth-status" role="status" aria-live="polite"></p>
-              <button type="submit" class="btn btn--primary btn--block"><span class="btn__spinner" aria-hidden="true"></span><span>Sign In</span></button>
+              <button type="submit" class="btn btn--primary btn--block"><span>Sign In</span></button>
             </form>
             <p class="auth-switch">Don't have an account? <button type="button" class="auth-switch__link" data-goto-view="signup">Sign up</button></p>
             <p class="auth-note"><i data-lucide="info"></i>Sign-in isn't connected yet, so nothing you enter here is sent or saved.</p>
@@ -69,7 +69,7 @@ class AuthModal {
               ${this.field("signup-password", "Password", "password", "new-password")}
               ${this.field("signup-confirm", "Confirm password", "password", "new-password")}
               <p class="auth-status" role="status" aria-live="polite"></p>
-              <button type="submit" class="btn btn--primary btn--block"><span class="btn__spinner" aria-hidden="true"></span><span>Create Account</span></button>
+              <button type="submit" class="btn btn--primary btn--block"><span>Create Account</span></button>
             </form>
             <p class="auth-switch">Already have an account? <button type="button" class="auth-switch__link" data-goto-view="login">Sign in</button></p>
             <p class="auth-note"><i data-lucide="info"></i>Account creation isn't connected yet, so nothing you enter here is sent or saved.</p>

@@ -1,7 +1,6 @@
 """Try the matching engine from the command line.
 
-With --offline it uses the studies in database/05_seed_studies.sql.
-Without it, it reads the studies from Supabase (needs backend/.env).
+Reads the studies from Supabase (needs a .env file with SUPABASE_URL and SUPABASE_KEY).
 """
 
 import argparse
@@ -33,18 +32,10 @@ def parse_args():
     parser.add_argument("--keywords", default=SAMPLE["keywords"],
                         help="comma-separated keywords")
     parser.add_argument("--limit", type=int, default=None)
-    parser.add_argument("--offline", action="store_true",
-                        help="use the seed file instead of Supabase")
     return parser.parse_args()
 
 
 def run(args):
-    if args.offline:
-        from app.services.matcher import MatchService
-        from tests.seed_loader import FakeStudyModel
-        return MatchService(FakeStudyModel()).find_matches(
-            args.title, args.abstract, args.keywords, limit=args.limit
-        )
     from app.services.matcher import find_matches
     return find_matches(args.title, args.abstract, args.keywords, limit=args.limit)
 

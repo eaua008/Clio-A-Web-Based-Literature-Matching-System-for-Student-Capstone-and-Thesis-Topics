@@ -75,8 +75,6 @@ class AuthController {
     document.querySelectorAll("[data-user-name]").forEach((el) => { el.textContent = name; });
     document.querySelectorAll("[data-user-email]").forEach((el) => { el.textContent = user.email; });
     document.querySelectorAll("[data-user-initial]").forEach((el) => { el.textContent = name.charAt(0).toUpperCase(); });
-    const badge = account.querySelector(".demo-badge");
-    if (badge) badge.hidden = true;
     guest.hidden = true;
     guest.style.display = "none"; /* .auth-nav__guest sets display:flex, which would beat [hidden] */
     account.hidden = false;
